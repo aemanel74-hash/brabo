@@ -1,0 +1,6 @@
+{
+  "name": "Website Digital Desa Brabo",
+  "description": "Portal resmi informasi, sejarah, pemerintahan, tiga dusun, pelayanan publik, potensi, dan transparansi Desa Brabo, Kecamatan Tanggungharjo, Kabupaten Grobogan, Jawa Tengah.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
