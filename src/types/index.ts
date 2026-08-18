@@ -108,27 +108,117 @@ export interface SignatureSlotConfig {
   requiresTerritoryMatch?: boolean;
 }
 
-export interface LetterTemplate {
+export type ComplaintStatus = 
+  | 'MENUNGGU_VERIFIKASI'
+  | 'DIVERIFIKASI'
+  | 'SEDANG_DITINDAKLANJUTI'
+  | 'SELESAI'
+  | 'DITOLAK';
+
+export type ComplaintCategory = 
+  | 'Infrastruktur & Jalan'
+  | 'Pelayanan Publik'
+  | 'Kebersihan & Lingkungan'
+  | 'Sosial & Bantuan'
+  | 'Keamanan & Ketertiban'
+  | 'Kesehatan'
+  | 'Lainnya';
+
+export interface CitizenComplaint {
+  id: string;
+  trackingCode: string; // e.g. ADU-849201
+  reporterName: string;
+  isAnonymous: boolean;
+  nik?: string;
+  phone: string;
+  hamlet: string;
+  specificLocation: string;
+  category: ComplaintCategory;
+  title: string;
+  description: string;
+  photoUrl?: string;
+  status: ComplaintStatus;
+  createdAt: string;
+  updatedAt: string;
+  adminResponse?: string;
+  adminResponseDate?: string;
+  officerInCharge?: string;
+}
+
+export type DocumentCategory = 
+  | 'Kependudukan' 
+  | 'Perizinan & Usaha' 
+  | 'Sosial & Kesejahteraan' 
+  | 'Keterangan Umum' 
+  | 'Pertanahan & Waris';
+
+export interface DocumentTemplate {
   id: string;
   code: string;
   name: string;
-  category: 'Kependudukan' | 'Perizinan' | 'Keterangan' | 'Sosial' | 'Umum';
-  kopTitle: string;
-  kopSubtitle: string;
-  letterNumberFormat: string;
-  perihal: string;
-  lampiran?: string;
-  openingText: string;
-  contentTemplate: string;
-  closingText: string;
-  signatureLayout: 'single' | 'double_horizontal' | 'double_stacked' | 'triple';
-  signatureSlots: SignatureSlotConfig[];
-  footerNote?: string;
+  category: DocumentCategory;
+  description: string;
+  fileUrl: string; // URL file download format surat/formulir
+  fileName: string;
+  fileType: 'PDF' | 'DOCX' | 'DOC' | 'ZIP' | 'IMAGE';
+  fileSizeBytes?: number;
+  lastUpdated: string;
+  estimatedProcessingTime: string;
+  cost: string;
   isActive: boolean;
-  fontSize: 'sm' | 'base' | 'lg';
-  margins: 'compact' | 'normal' | 'spacious';
-  requirements: string[];
+  requirements: string[]; // Rules / syarat dokumen
+  proceduralSteps: string[]; // Tata cara / alur permohonan
+  targetOfficer?: string;
+  // Legacy optional properties for backward compatibility
+  kopTitle?: string;
+  kopSubtitle?: string;
+  letterNumberFormat?: string;
+  perihal?: string;
+  openingText?: string;
+  contentTemplate?: string;
+  closingText?: string;
+  signatureLayout?: 'single' | 'double_horizontal' | 'double_stacked' | 'triple';
+  signatureSlots?: SignatureSlotConfig[];
+  footerNote?: string;
+  fontSize?: 'sm' | 'base' | 'lg';
+  margins?: 'compact' | 'normal' | 'spacious';
 }
+
+// Type alias
+export type LetterTemplate = DocumentTemplate;
+
+export interface DocumentSubmission {
+  id: string;
+  trackingCode: string;
+  templateId: string;
+  templateCode: string;
+  serviceName: string;
+  nik: string;
+  fullName: string;
+  gender?: string;
+  placeOfBirth?: string;
+  dateOfBirth?: string;
+  religion?: string;
+  occupation?: string;
+  hamlet: string;
+  rt: string;
+  rw: string;
+  purpose: string;
+  uploadedFileUrl?: string;
+  uploadedFileName?: string;
+  ktpPhotoUrl?: string;
+  kkPhotoUrl?: string;
+  businessName?: string;
+  businessType?: string;
+  selectedSignatoryIds?: string[];
+  status: 'MENUNGGU_VERIFIKASI' | 'DIPROSES' | 'SELESAI_SIAP_AMBIL' | 'DITOLAK';
+  submittedAt: string;
+  notes?: string;
+  customLetterNumber?: string;
+  pickupSchedule?: string;
+}
+
+export type LetterSubmission = DocumentSubmission;
 
 export type MapLocationCategory = 
   | 'Kantor Desa' 
@@ -236,4 +326,36 @@ export interface NewsItem {
   sourceId: string;
   status: VerificationStatus;
   featured?: boolean;
+}
+
+export type CommunityOrgType = 'PKK' | 'KARANG_TARUNA';
+
+export interface CommunityOrgMember {
+  id: string;
+  orgType: CommunityOrgType;
+  name: string;
+  position: string;
+  period?: string;
+  photoUrl?: string;
+  contact?: string;
+  status: VerificationStatus;
+  sourceId: string;
+  notes?: string;
+  order?: number;
+}
+
+export interface CitizenActivityPhoto {
+  id: string;
+  activityId?: string;
+  activityTitle: string;
+  category: ActivityItem['category'];
+  uploaderName: string;
+  uploaderHamlet?: string;
+  uploaderPhone?: string;
+  photoUrl: string;
+  caption: string;
+  takenDate?: string;
+  uploadedAt: string;
+  fileSizeKb?: number;
+  status: 'APPROVED' | 'PENDING';
 }

@@ -6,10 +6,18 @@ import {
   VillageService, 
   VerificationStatus,
   Signatory,
+  DocumentTemplate,
   LetterTemplate,
+  DocumentSubmission,
+  LetterSubmission,
   MapLocation,
   VillageBoundary,
-  MediaItem
+  MediaItem,
+  CommunityOrgMember,
+  CommunityOrgType,
+  CitizenActivityPhoto,
+  CitizenComplaint,
+  ComplaintStatus
 } from '../types';
 import { VILLAGE_HEAD, VILLAGE_OFFICIALS } from '../data/research/government';
 import { VILLAGE_ACTIVITIES } from '../data/research/activities';
@@ -19,6 +27,16 @@ import { INITIAL_SIGNATORIES } from '../data/research/signatories';
 import { INITIAL_LETTER_TEMPLATES } from '../data/research/letterTemplates';
 import { INITIAL_MAP_LOCATIONS, INITIAL_VILLAGE_BOUNDARY } from '../data/research/mapLocations';
 import { INITIAL_MEDIA } from '../data/research/media';
+import { INITIAL_COMPLAINTS } from '../data/research/complaints';
+
+export type { 
+  DocumentSubmission, 
+  LetterSubmission, 
+  DocumentTemplate, 
+  LetterTemplate, 
+  CitizenComplaint, 
+  ComplaintStatus 
+};
 
 export interface NewsArticle {
   id: string;
@@ -32,32 +50,6 @@ export interface NewsArticle {
   sourceId: string;
   imageUrl?: string;
   featured?: boolean;
-}
-
-export interface LetterSubmission {
-  id: string;
-  trackingCode: string;
-  templateId: string;
-  templateCode: string;
-  serviceName: string;
-  nik: string;
-  fullName: string;
-  gender: string;
-  placeOfBirth: string;
-  dateOfBirth: string;
-  religion: string;
-  occupation: string;
-  hamlet: string;
-  rt: string;
-  rw: string;
-  purpose: string;
-  businessName?: string;
-  businessType?: string;
-  selectedSignatoryIds?: string[];
-  status: 'MENUNGGU_VERIFIKASI' | 'DIPROSES' | 'SELESAI_SIAP_AMBIL' | 'DITOLAK';
-  submittedAt: string;
-  notes?: string;
-  customLetterNumber?: string;
 }
 
 const INITIAL_NEWS: NewsArticle[] = [
@@ -164,7 +156,7 @@ const INITIAL_SUBMISSIONS: LetterSubmission[] = [
   }
 ];
 
-const STORAGE_KEY = 'brabo_portal_state_v3';
+const STORAGE_KEY = 'brabo_portal_state_v4';
 
 interface VillageDataContextType {
   // Village Head & Officials
@@ -197,10 +189,10 @@ interface VillageDataContextType {
   updateSignatory: (id: string, updated: Partial<Signatory>) => void;
   deleteSignatory: (id: string) => void;
 
-  // Letter Templates
-  letterTemplates: LetterTemplate[];
-  addLetterTemplate: (tpl: Omit<LetterTemplate, 'id'>) => void;
-  updateLetterTemplate: (id: string, updated: Partial<LetterTemplate>) => void;
+  // Letter Templates (Document Formats)
+  letterTemplates: DocumentTemplate[];
+  addLetterTemplate: (tpl: Omit<DocumentTemplate, 'id'>) => void;
+  updateLetterTemplate: (id: string, updated: Partial<DocumentTemplate>) => void;
   duplicateLetterTemplate: (id: string) => void;
   deleteLetterTemplate: (id: string) => void;
 
@@ -217,11 +209,30 @@ interface VillageDataContextType {
   addMediaItem: (item: Omit<MediaItem, 'id' | 'uploadedAt'>) => MediaItem;
   deleteMediaItem: (id: string) => void;
 
-  // Citizen Letter Submissions
+  // Citizen Letter & Document Submissions
   submissions: LetterSubmission[];
   submitLetter: (submissionData: Omit<LetterSubmission, 'id' | 'trackingCode' | 'submittedAt' | 'status'>) => LetterSubmission;
-  updateSubmissionStatus: (id: string, status: LetterSubmission['status'], notes?: string, customLetterNumber?: string) => void;
+  updateSubmissionStatus: (id: string, status: LetterSubmission['status'], notes?: string, customLetterNumber?: string, pickupSchedule?: string) => void;
   deleteSubmission: (id: string) => void;
+
+  // Citizen Complaints & Reports (Aduan / Lapor Warga)
+  complaints: CitizenComplaint[];
+  submitComplaint: (complaintData: Omit<CitizenComplaint, 'id' | 'trackingCode' | 'createdAt' | 'updatedAt' | 'status'>) => CitizenComplaint;
+  updateComplaintStatus: (id: string, status: ComplaintStatus, adminResponse?: string, officerInCharge?: string) => void;
+  deleteComplaint: (id: string) => void;
+
+  // Lembaga Kemasyarakatan Desa (PKK & Karang Taruna)
+  pkkMembers: CommunityOrgMember[];
+  karangTarunaMembers: CommunityOrgMember[];
+  addCommunityMember: (item: Omit<CommunityOrgMember, 'id'>) => void;
+  updateCommunityMember: (id: string, updated: Partial<CommunityOrgMember>) => void;
+  deleteCommunityMember: (id: string) => void;
+
+  // Citizen Activity Photos (Dokumentasi Partisipasi Warga)
+  citizenPhotos: CitizenActivityPhoto[];
+  addCitizenPhoto: (photo: Omit<CitizenActivityPhoto, 'id' | 'uploadedAt'>) => CitizenActivityPhoto;
+  updateCitizenPhotoStatus: (id: string, status: CitizenActivityPhoto['status']) => void;
+  deleteCitizenPhoto: (id: string) => void;
 
   // Backup & Reset
   resetToDefaults: () => void;
@@ -331,6 +342,45 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   });
 
+  // PKK & Karang Taruna (Empty state initially as requested, admin can fill)
+  const [pkkMembers, setPkkMembers] = useState<CommunityOrgMember[]>(() => {
+    try {
+      const saved = localStorage.getItem(`${STORAGE_KEY}_pkk`);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [karangTarunaMembers, setKarangTarunaMembers] = useState<CommunityOrgMember[]>(() => {
+    try {
+      const saved = localStorage.getItem(`${STORAGE_KEY}_karang_taruna`);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Citizen Activity Photos (Dokumentasi Partisipasi Warga)
+  const [citizenPhotos, setCitizenPhotos] = useState<CitizenActivityPhoto[]>(() => {
+    try {
+      const saved = localStorage.getItem(`${STORAGE_KEY}_citizen_photos`);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Citizen Complaints & Aspirations (Aduan / Lapor Masyarakat)
+  const [complaints, setComplaints] = useState<CitizenComplaint[]>(() => {
+    try {
+      const saved = localStorage.getItem(`${STORAGE_KEY}_complaints`);
+      return saved ? JSON.parse(saved) : INITIAL_COMPLAINTS;
+    } catch {
+      return INITIAL_COMPLAINTS;
+    }
+  });
+
   // Sync to LocalStorage
   useEffect(() => {
     try {
@@ -345,6 +395,10 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
       localStorage.setItem(`${STORAGE_KEY}_villageBoundary`, JSON.stringify(villageBoundary));
       localStorage.setItem(`${STORAGE_KEY}_mediaList`, JSON.stringify(mediaList));
       localStorage.setItem(`${STORAGE_KEY}_submissions`, JSON.stringify(submissions));
+      localStorage.setItem(`${STORAGE_KEY}_complaints`, JSON.stringify(complaints));
+      localStorage.setItem(`${STORAGE_KEY}_pkk`, JSON.stringify(pkkMembers));
+      localStorage.setItem(`${STORAGE_KEY}_karang_taruna`, JSON.stringify(karangTarunaMembers));
+      localStorage.setItem(`${STORAGE_KEY}_citizen_photos`, JSON.stringify(citizenPhotos));
     } catch (e) {
       console.error('Failed saving to localStorage:', e);
     }
@@ -360,6 +414,10 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     villageBoundary,
     mediaList,
     submissions,
+    complaints,
+    pkkMembers,
+    karangTarunaMembers,
+    citizenPhotos,
   ]);
 
   // Officials handlers
@@ -534,19 +592,119 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     return newSub;
   };
 
-  const updateSubmissionStatus = (id: string, status: LetterSubmission['status'], notes?: string, customLetterNumber?: string) => {
+  const updateSubmissionStatus = (id: string, status: LetterSubmission['status'], notes?: string, customLetterNumber?: string, pickupSchedule?: string) => {
     setSubmissions(prev =>
       prev.map(s => (s.id === id ? { 
         ...s, 
         status, 
         notes: notes || s.notes,
-        customLetterNumber: customLetterNumber !== undefined ? customLetterNumber : s.customLetterNumber
+        customLetterNumber: customLetterNumber !== undefined ? customLetterNumber : s.customLetterNumber,
+        pickupSchedule: pickupSchedule !== undefined ? pickupSchedule : s.pickupSchedule
       } : s))
     );
   };
 
   const deleteSubmission = (id: string) => {
     setSubmissions(prev => prev.filter(s => s.id !== id));
+  };
+
+  // Citizen Complaints & Aspirations (Aduan Warga)
+  const submitComplaint = (data: Omit<CitizenComplaint, 'id' | 'trackingCode' | 'createdAt' | 'updatedAt' | 'status'>): CitizenComplaint => {
+    const randomCode = Math.floor(100000 + Math.random() * 900000);
+    const trackingCode = `ADU-${randomCode}`;
+    const dateStr = new Date().toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    const newComplaint: CitizenComplaint = {
+      ...data,
+      id: `adu-${Date.now()}`,
+      trackingCode,
+      createdAt: `${dateStr} WIB`,
+      updatedAt: `${dateStr} WIB`,
+      status: 'MENUNGGU_VERIFIKASI',
+      officerInCharge: 'Petugas Pelayanan & Aparat Desa',
+    };
+
+    setComplaints(prev => [newComplaint, ...prev]);
+    return newComplaint;
+  };
+
+  const updateComplaintStatus = (id: string, status: ComplaintStatus, adminResponse?: string, officerInCharge?: string) => {
+    const dateStr = new Date().toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    setComplaints(prev =>
+      prev.map(c => (c.id === id ? {
+        ...c,
+        status,
+        updatedAt: `${dateStr} WIB`,
+        adminResponse: adminResponse !== undefined ? adminResponse : c.adminResponse,
+        adminResponseDate: adminResponse ? `${dateStr} WIB` : c.adminResponseDate,
+        officerInCharge: officerInCharge || c.officerInCharge,
+      } : c))
+    );
+  };
+
+  const deleteComplaint = (id: string) => {
+    setComplaints(prev => prev.filter(c => c.id !== id));
+  };
+
+  // Community Org Members (PKK & Karang Taruna)
+  const addCommunityMember = (item: Omit<CommunityOrgMember, 'id'>) => {
+    const newItem: CommunityOrgMember = {
+      ...item,
+      id: `COMM-${item.orgType}-${Date.now()}`,
+    };
+    if (item.orgType === 'PKK') {
+      setPkkMembers(prev => [...prev, newItem]);
+    } else {
+      setKarangTarunaMembers(prev => [...prev, newItem]);
+    }
+  };
+
+  const updateCommunityMember = (id: string, updated: Partial<CommunityOrgMember>) => {
+    setPkkMembers(prev => prev.map(m => (m.id === id ? { ...m, ...updated } : m)));
+    setKarangTarunaMembers(prev => prev.map(m => (m.id === id ? { ...m, ...updated } : m)));
+  };
+
+  const deleteCommunityMember = (id: string) => {
+    setPkkMembers(prev => prev.filter(m => m.id !== id));
+    setKarangTarunaMembers(prev => prev.filter(m => m.id !== id));
+  };
+
+  // Citizen Activity Photos
+  const addCitizenPhoto = (photo: Omit<CitizenActivityPhoto, 'id' | 'uploadedAt'>): CitizenActivityPhoto => {
+    const newPhoto: CitizenActivityPhoto = {
+      ...photo,
+      id: `PHOTO-${Date.now()}`,
+      uploadedAt: new Date().toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+    };
+    setCitizenPhotos(prev => [newPhoto, ...prev]);
+    return newPhoto;
+  };
+
+  const updateCitizenPhotoStatus = (id: string, status: CitizenActivityPhoto['status']) => {
+    setCitizenPhotos(prev => prev.map(p => (p.id === id ? { ...p, status } : p)));
+  };
+
+  const deleteCitizenPhoto = (id: string) => {
+    setCitizenPhotos(prev => prev.filter(p => p.id !== id));
   };
 
   // Reset & Backup
@@ -562,6 +720,10 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     setVillageBoundary(INITIAL_VILLAGE_BOUNDARY);
     setMediaList(INITIAL_MEDIA);
     setSubmissions(INITIAL_SUBMISSIONS);
+    setComplaints(INITIAL_COMPLAINTS);
+    setPkkMembers([]);
+    setKarangTarunaMembers([]);
+    setCitizenPhotos([]);
     localStorage.clear();
   };
 
@@ -578,6 +740,10 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
       villageBoundary,
       mediaList,
       submissions,
+      complaints,
+      pkkMembers,
+      karangTarunaMembers,
+      citizenPhotos,
       exportedAt: new Date().toISOString(),
     };
     return JSON.stringify(payload, null, 2);
@@ -597,6 +763,10 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
       if (parsed.villageBoundary) setVillageBoundary(parsed.villageBoundary);
       if (parsed.mediaList && Array.isArray(parsed.mediaList)) setMediaList(parsed.mediaList);
       if (parsed.submissions && Array.isArray(parsed.submissions)) setSubmissions(parsed.submissions);
+      if (parsed.complaints && Array.isArray(parsed.complaints)) setComplaints(parsed.complaints);
+      if (parsed.pkkMembers && Array.isArray(parsed.pkkMembers)) setPkkMembers(parsed.pkkMembers);
+      if (parsed.karangTarunaMembers && Array.isArray(parsed.karangTarunaMembers)) setKarangTarunaMembers(parsed.karangTarunaMembers);
+      if (parsed.citizenPhotos && Array.isArray(parsed.citizenPhotos)) setCitizenPhotos(parsed.citizenPhotos);
       return true;
     } catch (e) {
       console.error('Import error:', e);
@@ -645,6 +815,19 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
         submitLetter,
         updateSubmissionStatus,
         deleteSubmission,
+        complaints,
+        submitComplaint,
+        updateComplaintStatus,
+        deleteComplaint,
+        pkkMembers,
+        karangTarunaMembers,
+        addCommunityMember,
+        updateCommunityMember,
+        deleteCommunityMember,
+        citizenPhotos,
+        addCitizenPhoto,
+        updateCitizenPhotoStatus,
+        deleteCitizenPhoto,
         resetToDefaults,
         exportJSON,
         importJSON,
