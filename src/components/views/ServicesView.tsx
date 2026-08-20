@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useVillageData } from '../../context/VillageDataContext';
 import { DocumentTemplate, CitizenComplaint, ComplaintStatus, LetterSubmission } from '../../types';
 import { PhotoUploadInput } from '../common/PhotoUploadInput';
 import { DocumentUploadInput } from '../common/DocumentUploadInput';
+import { searchComplaintInSupabase, searchSubmissionInSupabase, isSupabaseConfigured } from '../../lib/supabase';
 import { 
   FileText, 
   Download, 
@@ -35,7 +36,8 @@ import {
   Lock,
   ChevronDown,
   RefreshCw,
-  ExternalLink
+  ExternalLink,
+  ShieldAlert
 } from 'lucide-react';
 
 interface ServicesViewProps {
@@ -81,6 +83,7 @@ export const ServicesView: React.FC<ServicesViewProps> = ({ onOpenSource }) => {
   const [letterTrackingQuery, setLetterTrackingQuery] = useState('');
   const [searchedSubmission, setSearchedSubmission] = useState<LetterSubmission | null>(null);
   const [submissionSearchError, setSubmissionSearchError] = useState(false);
+  const [isSearchingLetter, setIsSearchingLetter] = useState(false);
 
   // Complaints / Aduan State
   const [complaintForm, setComplaintForm] = useState({
@@ -97,10 +100,37 @@ export const ServicesView: React.FC<ServicesViewProps> = ({ onOpenSource }) => {
   });
   const [complaintReceipt, setComplaintReceipt] = useState<CitizenComplaint | null>(null);
 
+  // Anti-spam Cooldown & Validation Error States
+  const [lastComplaintTime, setLastComplaintTime] = useState<number>(0);
+  const [complaintCooldownRemaining, setComplaintCooldownRemaining] = useState<number>(0);
+  const [formValidationErrors, setFormValidationErrors] = useState<Record<string, string>>({});
+
   // Tracking Complaints
   const [complaintTrackingQuery, setComplaintTrackingQuery] = useState('');
   const [searchedComplaint, setSearchedComplaint] = useState<CitizenComplaint | null>(null);
   const [complaintSearchError, setComplaintSearchError] = useState(false);
+  const [isSearchingComplaint, setIsSearchingComplaint] = useState(false);
+
+  // Cooldown countdown timer
+  useEffect(() => {
+    if (complaintCooldownRemaining <= 0) return;
+    const interval = setInterval(() => {
+      setComplaintCooldownRemaining((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [complaintCooldownRemaining]);
+
+  // Validation helpers
+  const validateNik = (nik: string): boolean => {
+    const clean = nik.replace(/\D/g, '');
+    return clean.length === 16;
+  };
+
+  const validatePhone = (phone: string): boolean => {
+    if (!phone || phone.trim() === '') return true; // Optional in some forms
+    const clean = phone.replace(/[\s-]/g, '');
+    return /^(\+62|62|0)8[1-9][0-9]{7,11}$/.test(clean);
+  };
 
   // Filter Categories
   const categories = ['ALL', 'Kependudukan', 'Usaha', 'Sosial & Bantuan', 'Pertanahan & Bangunan', 'Umum'];
@@ -119,17 +149,33 @@ export const ServicesView: React.FC<ServicesViewProps> = ({ onOpenSource }) => {
   const handleLetterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedTemplate) return;
-    if (!submissionForm.fullName.trim() || !submissionForm.nik.trim()) {
-      alert('Mohon lengkapi Nama Lengkap dan NIK terlebih dahulu.');
+
+    const errors: Record<string, string> = {};
+
+    if (!submissionForm.fullName.trim()) {
+      errors.fullName = 'Nama Lengkap wajib diisi sesuai KTP.';
+    }
+
+    if (!validateNik(submissionForm.nik)) {
+      errors.nik = 'Format NIK tidak valid! Wajib tepat 16 digit angka.';
+    }
+
+    if (submissionForm.phone && !validatePhone(submissionForm.phone)) {
+      errors.phone = 'Nomor WhatsApp tidak valid (format: 08xxxxxxxxxx atau 628xxxxxxxxxx).';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormValidationErrors(errors);
       return;
     }
+    setFormValidationErrors({});
 
     const created = submitLetter({
       templateId: selectedTemplate.id,
       templateCode: selectedTemplate.code,
       serviceName: selectedTemplate.name,
-      nik: submissionForm.nik,
-      fullName: submissionForm.fullName,
+      nik: submissionForm.nik.trim(),
+      fullName: submissionForm.fullName.trim(),
       gender: submissionForm.gender,
       placeOfBirth: submissionForm.placeOfBirth,
       dateOfBirth: submissionForm.dateOfBirth,
@@ -151,31 +197,86 @@ export const ServicesView: React.FC<ServicesViewProps> = ({ onOpenSource }) => {
     setShowApplyModal(false);
   };
 
-  // Handle Tracking Search
-  const handleTrackLetter = (e: React.FormEvent) => {
+  // Handle Tracking Search (Multi-device Supabase + Local)
+  const handleTrackLetter = async (e: React.FormEvent) => {
     e.preventDefault();
     const query = letterTrackingQuery.trim().toUpperCase();
     if (!query) return;
 
-    const found = submissions.find(
-      (s) => s.trackingCode.toUpperCase() === query || s.nik === query
-    );
-    if (found) {
-      setSearchedSubmission(found);
-      setSubmissionSearchError(false);
-    } else {
+    setIsSearchingLetter(true);
+    setSubmissionSearchError(false);
+
+    try {
+      // 1. Check local state first
+      const localFound = submissions.find(
+        (s) => s.trackingCode.toUpperCase() === query || s.nik === query
+      );
+
+      if (localFound) {
+        setSearchedSubmission(localFound);
+        setIsSearchingLetter(false);
+        return;
+      }
+
+      // 2. Query Supabase Real-time Cloud
+      if (isSupabaseConfigured()) {
+        const cloudFound = await searchSubmissionInSupabase(query);
+        if (cloudFound) {
+          setSearchedSubmission(cloudFound);
+          setIsSearchingLetter(false);
+          return;
+        }
+      }
+
       setSearchedSubmission(null);
       setSubmissionSearchError(true);
+    } catch (err) {
+      console.error('Error tracking letter:', err);
+      setSubmissionSearchError(true);
+    } finally {
+      setIsSearchingLetter(false);
     }
   };
 
-  // Handle Complaint Submission
+  // Handle Complaint Submission with Anti-Spam & Validation
   const handleComplaintSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!complaintForm.title.trim() || !complaintForm.description.trim()) {
-      alert('Mohon lengkapi Judul Aduan dan Rincian Laporan.');
+
+    // Anti-spam Cooldown (30 seconds)
+    const now = Date.now();
+    if (now - lastComplaintTime < 30000) {
+      const remaining = Math.ceil((30000 - (now - lastComplaintTime)) / 1000);
+      setComplaintCooldownRemaining(remaining);
       return;
     }
+
+    const errors: Record<string, string> = {};
+
+    if (!complaintForm.isAnonymous && !complaintForm.authorName.trim()) {
+      errors.authorName = 'Nama Pelapor wajib diisi (atau centang Kirim Sebagai Anonim).';
+    }
+
+    if (complaintForm.authorNik && !validateNik(complaintForm.authorNik)) {
+      errors.authorNik = 'NIK harus 16 digit angka.';
+    }
+
+    if (complaintForm.authorPhone && !validatePhone(complaintForm.authorPhone)) {
+      errors.authorPhone = 'Format nomor WhatsApp tidak valid (contoh: 08123456789).';
+    }
+
+    if (!complaintForm.title.trim()) {
+      errors.title = 'Judul aduan wajib diisi.';
+    }
+
+    if (!complaintForm.description.trim() || complaintForm.description.length < 15) {
+      errors.description = 'Uraian laporan minimal 15 karakter agar detail jelas.';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormValidationErrors(errors);
+      return;
+    }
+    setFormValidationErrors({});
 
     const created = submitComplaint({
       authorName: complaintForm.isAnonymous ? 'Warga Anonim' : complaintForm.authorName || 'Warga Desa',
@@ -183,14 +284,17 @@ export const ServicesView: React.FC<ServicesViewProps> = ({ onOpenSource }) => {
       authorPhone: complaintForm.authorPhone,
       authorNik: complaintForm.authorNik,
       category: complaintForm.category,
-      title: complaintForm.title,
-      description: complaintForm.description,
+      title: complaintForm.title.trim(),
+      description: complaintForm.description.trim(),
       hamlet: complaintForm.hamlet,
       locationDetail: complaintForm.locationDetail,
       evidencePhotoUrl: complaintForm.evidencePhotoUrl,
     });
 
+    setLastComplaintTime(now);
+    setComplaintCooldownRemaining(30);
     setComplaintReceipt(created);
+
     // Reset Form
     setComplaintForm({
       authorName: '',
@@ -206,21 +310,44 @@ export const ServicesView: React.FC<ServicesViewProps> = ({ onOpenSource }) => {
     });
   };
 
-  // Handle Complaint Tracking Search
-  const handleTrackComplaint = (e: React.FormEvent) => {
+  // Handle Complaint Tracking Search (Multi-device Supabase + Local)
+  const handleTrackComplaint = async (e: React.FormEvent) => {
     e.preventDefault();
     const query = complaintTrackingQuery.trim().toUpperCase();
     if (!query) return;
 
-    const found = complaints.find(
-      (c) => c.trackingCode.toUpperCase() === query || c.authorNik === query
-    );
-    if (found) {
-      setSearchedComplaint(found);
-      setComplaintSearchError(false);
-    } else {
+    setIsSearchingComplaint(true);
+    setComplaintSearchError(false);
+
+    try {
+      // 1. Check local state first
+      const localFound = complaints.find(
+        (c) => c.trackingCode.toUpperCase() === query || c.nik === query
+      );
+
+      if (localFound) {
+        setSearchedComplaint(localFound);
+        setIsSearchingComplaint(false);
+        return;
+      }
+
+      // 2. Query Supabase Real-time Cloud
+      if (isSupabaseConfigured()) {
+        const cloudFound = await searchComplaintInSupabase(query);
+        if (cloudFound) {
+          setSearchedComplaint(cloudFound);
+          setIsSearchingComplaint(false);
+          return;
+        }
+      }
+
       setSearchedComplaint(null);
       setComplaintSearchError(true);
+    } catch (err) {
+      console.error('Error tracking complaint:', err);
+      setComplaintSearchError(true);
+    } finally {
+      setIsSearchingComplaint(false);
     }
   };
 
@@ -352,10 +479,15 @@ export const ServicesView: React.FC<ServicesViewProps> = ({ onOpenSource }) => {
               />
               <button
                 type="submit"
-                className="px-4 py-2 bg-emerald-800 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors shrink-0 flex items-center gap-1.5 cursor-pointer"
+                disabled={isSearchingLetter}
+                className="px-4 py-2 bg-emerald-800 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-colors shrink-0 flex items-center gap-1.5 cursor-pointer"
               >
-                <Search className="w-3.5 h-3.5" />
-                <span>Cek Status</span>
+                {isSearchingLetter ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Search className="w-3.5 h-3.5" />
+                )}
+                <span>{isSearchingLetter ? 'Mencari...' : 'Cek Status'}</span>
               </button>
             </form>
           </div>
@@ -633,10 +765,15 @@ export const ServicesView: React.FC<ServicesViewProps> = ({ onOpenSource }) => {
               />
               <button
                 type="submit"
-                className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition-colors shrink-0 flex items-center gap-1.5 cursor-pointer"
+                disabled={isSearchingComplaint}
+                className="px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-colors shrink-0 flex items-center gap-1.5 cursor-pointer"
               >
-                <Search className="w-3.5 h-3.5" />
-                <span>Lacak Aduan</span>
+                {isSearchingComplaint ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Search className="w-3.5 h-3.5" />
+                )}
+                <span>{isSearchingComplaint ? 'Mencari...' : 'Lacak Aduan'}</span>
               </button>
             </form>
           </div>
@@ -803,6 +940,9 @@ export const ServicesView: React.FC<ServicesViewProps> = ({ onOpenSource }) => {
                         onChange={(e) => setComplaintForm({ ...complaintForm, authorName: e.target.value })}
                         className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
                       />
+                      {formValidationErrors.authorName && (
+                        <p className="text-[11px] text-rose-600 mt-1">{formValidationErrors.authorName}</p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -815,6 +955,9 @@ export const ServicesView: React.FC<ServicesViewProps> = ({ onOpenSource }) => {
                         onChange={(e) => setComplaintForm({ ...complaintForm, authorPhone: e.target.value })}
                         className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
                       />
+                      {formValidationErrors.authorPhone && (
+                        <p className="text-[11px] text-rose-600 mt-1">{formValidationErrors.authorPhone}</p>
+                      )}
                     </div>
                   </div>
                 )}
@@ -868,6 +1011,9 @@ export const ServicesView: React.FC<ServicesViewProps> = ({ onOpenSource }) => {
                     onChange={(e) => setComplaintForm({ ...complaintForm, title: e.target.value })}
                     className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
                   />
+                  {formValidationErrors.title && (
+                    <p className="text-[11px] text-rose-600 mt-1">{formValidationErrors.title}</p>
+                  )}
                 </div>
 
                 <div>
@@ -882,6 +1028,9 @@ export const ServicesView: React.FC<ServicesViewProps> = ({ onOpenSource }) => {
                     onChange={(e) => setComplaintForm({ ...complaintForm, description: e.target.value })}
                     className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
                   />
+                  {formValidationErrors.description && (
+                    <p className="text-[11px] text-rose-600 mt-1">{formValidationErrors.description}</p>
+                  )}
                 </div>
 
                 <div>
@@ -907,12 +1056,24 @@ export const ServicesView: React.FC<ServicesViewProps> = ({ onOpenSource }) => {
                   helperText="Format JPG, PNG (otomatis dioptimalkan untuk kecepatan akses)"
                 />
 
+                {complaintCooldownRemaining > 0 && (
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>Mohon tunggu <strong>{complaintCooldownRemaining} detik</strong> sebelum mengirimkan aduan berikutnya untuk mencegah spam.</span>
+                  </div>
+                )}
+
                 <button
                   type="submit"
-                  className="w-full py-3 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md shadow-amber-950/20 transition-all cursor-pointer"
+                  disabled={complaintCooldownRemaining > 0}
+                  className="w-full py-3 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md shadow-amber-950/20 transition-all cursor-pointer"
                 >
                   <Send className="w-4 h-4" />
-                  <span>Kirimkan Aduan ke Balai Desa Brabo</span>
+                  <span>
+                    {complaintCooldownRemaining > 0
+                      ? `Tunggu (${complaintCooldownRemaining}s) Sebelum Kirim Lagi`
+                      : 'Kirimkan Aduan ke Balai Desa Brabo'}
+                  </span>
                 </button>
               </form>
             </div>
@@ -1028,11 +1189,14 @@ export const ServicesView: React.FC<ServicesViewProps> = ({ onOpenSource }) => {
                     type="text"
                     required
                     maxLength={16}
-                    placeholder="331517XXXXXXXXXX"
+                    placeholder="331517XXXXXXXXXX (16 digit)"
                     value={submissionForm.nik}
-                    onChange={(e) => setSubmissionForm({ ...submissionForm, nik: e.target.value })}
+                    onChange={(e) => setSubmissionForm({ ...submissionForm, nik: e.target.value.replace(/\D/g, '') })}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden font-mono"
                   />
+                  {formValidationErrors.nik && (
+                    <p className="text-[11px] text-rose-600 mt-1">{formValidationErrors.nik}</p>
+                  )}
                 </div>
 
                 <div>
@@ -1047,7 +1211,26 @@ export const ServicesView: React.FC<ServicesViewProps> = ({ onOpenSource }) => {
                     onChange={(e) => setSubmissionForm({ ...submissionForm, fullName: e.target.value })}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
                   />
+                  {formValidationErrors.fullName && (
+                    <p className="text-[11px] text-rose-600 mt-1">{formValidationErrors.fullName}</p>
+                  )}
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Nomor WhatsApp Aktif (Untuk Notifikasi Status)
+                </label>
+                <input
+                  type="tel"
+                  placeholder="08xxxxxxxxxx atau 628xxxxxxxxxx"
+                  value={submissionForm.phone}
+                  onChange={(e) => setSubmissionForm({ ...submissionForm, phone: e.target.value })}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
+                />
+                {formValidationErrors.phone && (
+                  <p className="text-[11px] text-rose-600 mt-1">{formValidationErrors.phone}</p>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

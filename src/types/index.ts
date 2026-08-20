@@ -5,6 +5,12 @@ export type VerificationStatus =
   | 'NOT_FOUND'
   | 'REQUIRES_VERIFICATION';
 
+export type VerificationSourceOption = 
+  | 'UNVERIFIED'          // Belum Diverifikasi
+  | 'VERIFIED_DESA'       // Diverifikasi oleh Desa
+  | 'BPS_GROBOGAN'        // Data BPS Grobogan
+  | 'OTHER_VALID_SOURCE'; // Sumber lainnya yang valid
+
 export interface SourceCitation {
   id: string;
   title: string;
@@ -41,18 +47,27 @@ export interface OfficialPerson {
   description?: string;
   contact?: string;
   isConfirmedActive: boolean;
+  // Dynamic Verification Integration
+  verificationSource?: VerificationSourceOption;
+  verificationNote?: string;
+  customSourceName?: string;
 }
 
 export interface HamletData {
   id: string;
   name: string;
   alias?: string;
-  order: 1 | 2 | 3;
+  order: number;
   headName: string;
   headStatus: VerificationStatus;
   headSourceId: string;
+  headVerificationSource?: VerificationSourceOption;
+  headVerificationNote?: string;
+  headCustomSourceName?: string;
   rtCount?: number;
   rwCount?: number;
+  population?: number;
+  kkCount?: number;
   description: string;
   characteristics: string[];
   facilities: string[];
@@ -61,6 +76,10 @@ export interface HamletData {
   historicalSite?: string;
   sourceId: string;
   status: VerificationStatus;
+  verificationSource?: VerificationSourceOption;
+  verificationNote?: string;
+  customSourceName?: string;
+  imageUrl?: string;
 }
 
 export interface HistoryEvent {
@@ -335,11 +354,17 @@ export interface CommunityOrgMember {
   orgType: CommunityOrgType;
   name: string;
   position: string;
+  role?: string; // Alias compatibility for position
   period?: string;
   photoUrl?: string;
   contact?: string;
+  phone?: string; // Alias compatibility for contact
   status: VerificationStatus;
   sourceId: string;
+  verificationSource?: VerificationSourceOption;
+  verificationNote?: string;
+  customSourceName?: string;
+  isConfirmedActive?: boolean;
   notes?: string;
   order?: number;
 }

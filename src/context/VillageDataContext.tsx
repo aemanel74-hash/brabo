@@ -181,7 +181,10 @@ interface VillageDataContextType {
 
   // Hamlets Data
   hamlets: HamletData[];
-  updateHamletHead: (hamletId: string, headName: string, status?: VerificationStatus) => void;
+  addHamlet: (hamlet: Omit<HamletData, 'id'>) => void;
+  updateHamlet: (id: string, updated: Partial<HamletData>) => void;
+  deleteHamlet: (id: string) => void;
+  updateHamletHead: (hamletId: string, headName: string, status?: VerificationStatus, headVerificationSource?: any, headVerificationNote?: string, headCustomSourceName?: string) => void;
 
   // Signatories
   signatories: Signatory[];
@@ -473,8 +476,41 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     setActivities(prev => prev.filter(item => item.id !== id));
   };
 
-  // Hamlet Head handler
-  const updateHamletHead = (hamletId: string, headName: string, status: VerificationStatus = 'VERIFIED') => {
+  // Hamlet handlers
+  const addHamlet = (hamlet: Omit<HamletData, 'id'>) => {
+    const newId = `HAMLET-${Date.now()}`;
+    const newH: HamletData = {
+      ...hamlet,
+      id: newId,
+      order: hamlet.order || (hamlets.length + 1),
+      status: hamlet.status || 'VERIFIED',
+      sourceId: hamlet.sourceId || 'SRC-PEMDES-BRABO',
+      headStatus: hamlet.headStatus || 'VERIFIED',
+      headSourceId: hamlet.headSourceId || 'SRC-PEMDES-BRABO',
+      characteristics: hamlet.characteristics || [],
+      facilities: hamlet.facilities || [],
+      potentials: hamlet.potentials || [],
+      activities: hamlet.activities || [],
+    };
+    setHamlets(prev => [...prev, newH]);
+  };
+
+  const updateHamlet = (id: string, updated: Partial<HamletData>) => {
+    setHamlets(prev => prev.map(h => (h.id === id ? { ...h, ...updated } : h)));
+  };
+
+  const deleteHamlet = (id: string) => {
+    setHamlets(prev => prev.filter(h => h.id !== id));
+  };
+
+  const updateHamletHead = (
+    hamletId: string, 
+    headName: string, 
+    status: VerificationStatus = 'VERIFIED',
+    headVerificationSource?: any,
+    headVerificationNote?: string,
+    headCustomSourceName?: string
+  ) => {
     setHamlets(prev =>
       prev.map(h => {
         if (h.id === hamletId) {
@@ -482,6 +518,9 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
             ...h,
             headName: headName || 'Data belum diverifikasi',
             headStatus: headName ? status : 'REQUIRES_VERIFICATION',
+            headVerificationSource: headVerificationSource || h.headVerificationSource,
+            headVerificationNote: headVerificationNote !== undefined ? headVerificationNote : h.headVerificationNote,
+            headCustomSourceName: headCustomSourceName !== undefined ? headCustomSourceName : h.headCustomSourceName,
           };
         }
         return h;
@@ -792,6 +831,9 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
         updateActivity,
         deleteActivity,
         hamlets,
+        addHamlet,
+        updateHamlet,
+        deleteHamlet,
         updateHamletHead,
         signatories,
         addSignatory,

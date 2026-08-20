@@ -20,7 +20,8 @@ import {
   Sliders, 
   Paperclip, 
   ShieldCheck, 
-  Printer 
+  Printer,
+  MessageCircle
 } from 'lucide-react';
 import { OfficialLetterDocument } from '../../common/OfficialLetterDocument';
 
@@ -120,6 +121,33 @@ export const DocumentSubmissionsTab: React.FC = () => {
           </span>
         );
     }
+  };
+
+  const getStatusLabel = (status: LetterSubmission['status']) => {
+    switch (status) {
+      case 'MENUNGGU_VERIFIKASI': return 'Menunggu Verifikasi';
+      case 'DIPROSES': return 'Sedang Diproses';
+      case 'SELESAI_SIAP_AMBIL': return 'Selesai & Siap Diambil di Balai Desa';
+      case 'DITOLAK': return 'Ditolak / Belum Lengkap';
+    }
+  };
+
+  const getWhatsAppLink = (sub: LetterSubmission) => {
+    const phoneNumber = (sub as any).phone;
+    if (!phoneNumber) return null;
+    let clean = phoneNumber.replace(/[^0-9]/g, '');
+    if (clean.startsWith('0')) {
+      clean = '62' + clean.substring(1);
+    }
+    const message = `Halo Bapak/Ibu ${sub.fullName}, ini dari Petugas Balai Desa Brabo mengabarkan status Permohonan Surat Anda:\n\n` +
+      `📌 *No. Resi:* ${sub.trackingCode}\n` +
+      `📄 *Layanan:* ${sub.serviceName}\n` +
+      `📊 *Status:* ${getStatusLabel(sub.status)}\n` +
+      (sub.customLetterNumber ? `🔢 *No. Surat:* ${sub.customLetterNumber}\n` : '') +
+      ((sub as any).pickupSchedule ? `📍 *Jadwal Pengambilan:* ${(sub as any).pickupSchedule}\n` : '') +
+      (sub.notes ? `💬 *Catatan:* ${sub.notes}\n\n` : '\n') +
+      `Silakan hubungi kami kembali jika ada pertanyaan. Terima kasih.`;
+    return `https://wa.me/${clean}?text=${encodeURIComponent(message)}`;
   };
 
   const filteredSubmissions = submissions.filter((sub) => {
@@ -342,6 +370,18 @@ export const DocumentSubmissionsTab: React.FC = () => {
                         <span>Validasi & Mutakhirkan Status</span>
                       </button>
 
+                      {getWhatsAppLink(sub) && (
+                        <a
+                          href={getWhatsAppLink(sub)!}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="w-full py-1.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-xs"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" />
+                          <span>Hubungi Pemohon via WA</span>
+                        </a>
+                      )}
+
                       <button
                         onClick={() => setPreviewDocSub(sub)}
                         className="w-full py-2 px-3 rounded-xl bg-white hover:bg-slate-100 text-slate-800 text-xs font-bold border border-slate-200 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
@@ -445,20 +485,36 @@ export const DocumentSubmissionsTab: React.FC = () => {
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setSelectedSub(null)}
-                  className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs"
-                >
-                  Simpan Perubahan
-                </button>
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">
+                <div>
+                  {getWhatsAppLink(selectedSub) && (
+                    <a
+                      href={getWhatsAppLink(selectedSub)!}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      <span>Kirim Info ke WA Pemohon</span>
+                    </a>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSub(null)}
+                    className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs"
+                  >
+                    Simpan Perubahan
+                  </button>
+                </div>
               </div>
             </form>
           </div>

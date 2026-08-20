@@ -132,7 +132,15 @@ export const GovernmentView: React.FC<GovernmentViewProps> = ({ onOpenSource }) 
                 <Award className="w-5 h-5 text-emerald-600" />
                 <h2 className="text-lg sm:text-xl font-bold text-slate-900">Kepala Desa Brabo Definitif</h2>
               </div>
-              <VerificationBadge status={villageHead.status} sourceId={villageHead.sourceId} onOpenSource={onOpenSource} showSourceTitle={true} />
+              <VerificationBadge
+                status={villageHead.status}
+                verificationSource={villageHead.verificationSource}
+                verificationNote={villageHead.verificationNote}
+                customSourceName={villageHead.customSourceName}
+                sourceId={villageHead.sourceId}
+                onOpenSource={onOpenSource}
+                showSourceTitle={true}
+              />
             </div>
 
             <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
@@ -204,7 +212,14 @@ export const GovernmentView: React.FC<GovernmentViewProps> = ({ onOpenSource }) 
                   <h4 className="text-base font-extrabold">{villageHead.name}</h4>
                   <p className="text-xs text-emerald-200 font-medium">{villageHead.role}</p>
                   <div className="pt-1 flex justify-center">
-                    <VerificationBadge status={villageHead.status} sourceId={villageHead.sourceId} onOpenSource={onOpenSource} />
+                    <VerificationBadge
+                      status={villageHead.status}
+                      verificationSource={villageHead.verificationSource}
+                      verificationNote={villageHead.verificationNote}
+                      customSourceName={villageHead.customSourceName}
+                      sourceId={villageHead.sourceId}
+                      onOpenSource={onOpenSource}
+                    />
                   </div>
                 </div>
               </div>
@@ -221,7 +236,14 @@ export const GovernmentView: React.FC<GovernmentViewProps> = ({ onOpenSource }) 
                     <h4 className="text-base font-extrabold">{sekdes.name}</h4>
                     <p className="text-xs text-slate-300 font-medium">{sekdes.role}</p>
                     <div className="pt-1 flex justify-center">
-                      <VerificationBadge status={sekdes.status} sourceId={sekdes.sourceId} onOpenSource={onOpenSource} />
+                      <VerificationBadge
+                        status={sekdes.status}
+                        verificationSource={sekdes.verificationSource}
+                        verificationNote={sekdes.verificationNote}
+                        customSourceName={sekdes.customSourceName}
+                        sourceId={sekdes.sourceId}
+                        onOpenSource={onOpenSource}
+                      />
                     </div>
                   </div>
                 </div>
@@ -244,7 +266,14 @@ export const GovernmentView: React.FC<GovernmentViewProps> = ({ onOpenSource }) 
                           <p className="text-xs font-bold text-slate-900 truncate">{kaur.name}</p>
                           <p className="text-[11px] text-emerald-700 font-medium truncate">{kaur.role}</p>
                         </div>
-                        <VerificationBadge status={kaur.status} sourceId={kaur.sourceId} onOpenSource={onOpenSource} />
+                        <VerificationBadge
+                          status={kaur.status}
+                          verificationSource={kaur.verificationSource}
+                          verificationNote={kaur.verificationNote}
+                          customSourceName={kaur.customSourceName}
+                          sourceId={kaur.sourceId}
+                          onOpenSource={onOpenSource}
+                        />
                       </div>
                     ))}
                   </div>
@@ -265,7 +294,14 @@ export const GovernmentView: React.FC<GovernmentViewProps> = ({ onOpenSource }) 
                           <p className="text-xs font-bold text-slate-900 truncate">{kasi.name}</p>
                           <p className="text-[11px] text-emerald-700 font-medium truncate">{kasi.role}</p>
                         </div>
-                        <VerificationBadge status={kasi.status} sourceId={kasi.sourceId} onOpenSource={onOpenSource} />
+                        <VerificationBadge
+                          status={kasi.status}
+                          verificationSource={kasi.verificationSource}
+                          verificationNote={kasi.verificationNote}
+                          customSourceName={kasi.customSourceName}
+                          sourceId={kasi.sourceId}
+                          onOpenSource={onOpenSource}
+                        />
                       </div>
                     ))}
                   </div>
@@ -289,7 +325,14 @@ export const GovernmentView: React.FC<GovernmentViewProps> = ({ onOpenSource }) 
                       </div>
                       <div className="pt-1 border-t border-slate-100 flex justify-between items-center">
                         <span className="text-[10px] text-slate-500">{kadus.period || 'Definitif'}</span>
-                        <VerificationBadge status={kadus.status} sourceId={kadus.sourceId} onOpenSource={onOpenSource} />
+                        <VerificationBadge
+                          status={kadus.status}
+                          verificationSource={kadus.verificationSource}
+                          verificationNote={kadus.verificationNote}
+                          customSourceName={kadus.customSourceName}
+                          sourceId={kadus.sourceId}
+                          onOpenSource={onOpenSource}
+                        />
                       </div>
                     </div>
                   ))}
@@ -320,10 +363,20 @@ export const GovernmentView: React.FC<GovernmentViewProps> = ({ onOpenSource }) 
                 <div className="w-12 h-12 rounded-xl bg-emerald-800 flex items-center justify-center text-white shrink-0 font-bold">
                   KD
                 </div>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="text-xs font-extrabold truncate">{villageHead.name}</p>
                   <p className="text-[11px] text-emerald-200 truncate">{villageHead.role}</p>
-                  <span className="text-[10px] text-emerald-300 font-mono">Definitif 2019-skrg</span>
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="text-[10px] text-emerald-300 font-mono">Definitif 2019-skrg</span>
+                    <VerificationBadge
+                      status={villageHead.status}
+                      verificationSource={villageHead.verificationSource}
+                      verificationNote={villageHead.verificationNote}
+                      customSourceName={villageHead.customSourceName}
+                      sourceId={villageHead.sourceId}
+                      onOpenSource={onOpenSource}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -342,7 +395,14 @@ export const GovernmentView: React.FC<GovernmentViewProps> = ({ onOpenSource }) 
                     <p className="text-[11px] text-emerald-800 font-medium truncate">{official.role}</p>
                     <div className="flex items-center justify-between mt-1">
                       <span className="text-[10px] text-slate-500 truncate">{official.period || 'Perangkat'}</span>
-                      <VerificationBadge status={official.status} sourceId={official.sourceId} onOpenSource={onOpenSource} />
+                      <VerificationBadge
+                        status={official.status}
+                        verificationSource={official.verificationSource}
+                        verificationNote={official.verificationNote}
+                        customSourceName={official.customSourceName}
+                        sourceId={official.sourceId}
+                        onOpenSource={onOpenSource}
+                      />
                     </div>
                   </div>
                 </div>
@@ -425,7 +485,14 @@ export const GovernmentView: React.FC<GovernmentViewProps> = ({ onOpenSource }) 
                       <p className="text-[11px] text-emerald-800 font-semibold truncate">{member.position}</p>
                       <div className="flex items-center justify-between mt-1">
                         <span className="text-[10px] text-slate-500">{member.period || 'Pengurus'}</span>
-                        <VerificationBadge status={member.status} sourceId={member.sourceId} onOpenSource={onOpenSource} />
+                        <VerificationBadge
+                          status={member.status}
+                          verificationSource={member.verificationSource}
+                          verificationNote={member.verificationNote}
+                          customSourceName={member.customSourceName}
+                          sourceId={member.sourceId}
+                          onOpenSource={onOpenSource}
+                        />
                       </div>
                     </div>
                   </div>
@@ -509,7 +576,14 @@ export const GovernmentView: React.FC<GovernmentViewProps> = ({ onOpenSource }) 
                       <p className="text-[11px] text-emerald-800 font-semibold truncate">{member.position}</p>
                       <div className="flex items-center justify-between mt-1">
                         <span className="text-[10px] text-slate-500">{member.period || 'Pengurus'}</span>
-                        <VerificationBadge status={member.status} sourceId={member.sourceId} onOpenSource={onOpenSource} />
+                        <VerificationBadge
+                          status={member.status}
+                          verificationSource={member.verificationSource}
+                          verificationNote={member.verificationNote}
+                          customSourceName={member.customSourceName}
+                          sourceId={member.sourceId}
+                          onOpenSource={onOpenSource}
+                        />
                       </div>
                     </div>
                   </div>

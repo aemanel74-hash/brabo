@@ -55,13 +55,17 @@ import {
   Flame,
   Camera,
   Cloud,
-  MessageSquare
+  MessageSquare,
+  Compass
 } from 'lucide-react';
 import { SupabaseSettingsTab } from './admin/SupabaseSettingsTab';
 import { ComplaintsTab } from './admin/ComplaintsTab';
 import { DocumentTemplatesTab } from './admin/DocumentTemplatesTab';
 import { DocumentSubmissionsTab } from './admin/DocumentSubmissionsTab';
+import { HamletsTab } from './admin/HamletsTab';
+import { OrganizationsTab } from './admin/OrganizationsTab';
 import { PhotoUploadInput } from '../common/PhotoUploadInput';
+import { VerificationSourceSelector } from '../common/VerificationSourceSelector';
 
 interface AdminDashboardViewProps {
   onOpenSource: (sourceId: string) => void;
@@ -69,6 +73,7 @@ interface AdminDashboardViewProps {
 
 type AdminTab = 
   | 'pamong'
+  | 'kewilayahan'
   | 'kelembagaan'
   | 'signatories'
   | 'complaints'
@@ -151,31 +156,38 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
   const [editingOfficialId, setEditingOfficialId] = useState<string | null>(null);
   const [officialForm, setOfficialForm] = useState<Partial<OfficialPerson>>({});
   const [isAddingOfficial, setIsAddingOfficial] = useState(false);
-  const [newOfficial, setNewOfficial] = useState({
+  const [newOfficial, setNewOfficial] = useState<Partial<OfficialPerson>>({
     name: '',
     role: 'Kepala Urusan Umum & Perencanaan',
     period: '2019 - Sekarang',
     photoUrl: '',
     status: 'VERIFIED' as VerificationStatus,
-    sourceId: 'SRC-PEMKAB-GROB',
+    sourceId: 'SRC-PEMDES-BRABO',
+    verificationSource: 'VERIFIED_DESA',
+    verificationNote: 'SK Pengangkatan Perangkat Desa Brabo',
+    customSourceName: '',
     isConfirmedActive: true,
   });
 
   const handleSaveHead = () => {
     updateVillageHead(headForm);
     setEditingHead(false);
-    showToast('Profil Kepala Desa berhasil diperbarui.');
+    showToast('Profil Kepala Desa & status verifikasi berhasil diperbarui.');
   };
 
   const handleSaveOfficial = (id: string) => {
     updateOfficial(id, officialForm);
     setEditingOfficialId(null);
-    showToast('Data Pamong berhasil disimpan.');
+    showToast('Data Pamong & status verifikasi berhasil disimpan.');
   };
 
   const handleCreateOfficial = (e: React.FormEvent) => {
     e.preventDefault();
-    addOfficial(newOfficial);
+    if (!newOfficial.name?.trim()) {
+      alert('Nama Pamong wajib diisi.');
+      return;
+    }
+    addOfficial(newOfficial as Omit<OfficialPerson, 'id'>);
     setIsAddingOfficial(false);
     setNewOfficial({
       name: '',
@@ -183,7 +195,10 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
       period: '2019 - Sekarang',
       photoUrl: '',
       status: 'VERIFIED',
-      sourceId: 'SRC-PEMKAB-GROB',
+      sourceId: 'SRC-PEMDES-BRABO',
+      verificationSource: 'VERIFIED_DESA',
+      verificationNote: 'SK Pengangkatan Perangkat Desa Brabo',
+      customSourceName: '',
       isConfirmedActive: true,
     });
     showToast('Pamong desa baru berhasil ditambahkan.');
@@ -415,58 +430,6 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
   };
 
   // ----------------------------------------------------
-  // TAB KELEMBAGAAN: PKK & KARANG TARUNA STATE
-  // ----------------------------------------------------
-  const [selectedOrgType, setSelectedOrgType] = useState<CommunityOrgType>('PKK');
-  const [editingOrgMemberId, setEditingOrgMemberId] = useState<string | null>(null);
-  const [orgMemberForm, setOrgMemberForm] = useState<Partial<CommunityOrgMember>>({});
-  const [isAddingOrgMember, setIsAddingOrgMember] = useState(false);
-  const [newOrgMember, setNewOrgMember] = useState({
-    name: '',
-    role: 'Ketua',
-    period: '2021 - 2026',
-    photoUrl: '',
-    phone: '',
-    status: 'VERIFIED' as VerificationStatus,
-    sourceId: 'SRC-PEMDES-BRABO',
-    isConfirmedActive: true,
-  });
-
-  const handleCreateOrgMember = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newOrgMember.name.trim()) {
-      alert('Nama pengurus wajib diisi.');
-      return;
-    }
-    addCommunityMember(selectedOrgType, newOrgMember);
-    setIsAddingOrgMember(false);
-    setNewOrgMember({
-      name: '',
-      role: 'Ketua',
-      period: '2021 - 2026',
-      photoUrl: '',
-      phone: '',
-      status: 'VERIFIED',
-      sourceId: 'SRC-PEMDES-BRABO',
-      isConfirmedActive: true,
-    });
-    showToast(`Pengurus ${selectedOrgType === 'PKK' ? 'TP PKK' : 'Karang Taruna'} baru berhasil ditambahkan.`);
-  };
-
-  const handleSaveOrgMember = (id: string) => {
-    updateCommunityMember(selectedOrgType, id, orgMemberForm);
-    setEditingOrgMemberId(null);
-    showToast('Data pengurus berhasil diperbarui.');
-  };
-
-  const handleDeleteOrgMember = (id: string, name: string) => {
-    if (confirm(`Hapus pengurus "${name}"?`)) {
-      deleteCommunityMember(selectedOrgType, id);
-      showToast('Pengurus berhasil dihapus.');
-    }
-  };
-
-  // ----------------------------------------------------
   // TAB 9: BACKUP & JSON STATE
   // ----------------------------------------------------
   const [jsonInput, setJsonInput] = useState('');
@@ -513,293 +476,6 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
         </div>
       )}
 
-      {/* ==================================================== */}
-      {/* TAB: KELEMBAGAAN DESA (PKK & KARANG TARUNA) */}
-      {/* ==================================================== */}
-      {activeTab === 'kelembagaan' && (
-        <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200 space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-            <div>
-              <h3 className="text-base font-bold text-slate-900">
-                Struktur Kelembagaan Desa (TP PKK & Karang Taruna)
-              </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Kelola data pengurus TP PKK dan Karang Taruna Desa Brabo. Data siap diinput oleh admin secara mandiri.
-              </p>
-            </div>
-
-            <button
-              onClick={() => setIsAddingOrgMember(!isAddingOrgMember)}
-              className="px-3.5 py-2 rounded-xl bg-emerald-800 text-white text-xs font-bold flex items-center gap-1.5 hover:bg-emerald-700 transition-colors cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Tambah Pengurus {selectedOrgType === 'PKK' ? 'PKK' : 'Karang Taruna'}</span>
-            </button>
-          </div>
-
-          {/* Org Selector Switch */}
-          <div className="flex gap-2 p-1.5 bg-slate-100/80 rounded-2xl border border-slate-200 w-fit">
-            <button
-              onClick={() => setSelectedOrgType('PKK')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                selectedOrgType === 'PKK'
-                  ? 'bg-rose-700 text-white shadow-xs'
-                  : 'text-slate-700 hover:bg-white/70'
-              }`}
-            >
-              <HeartHandshake className="w-4 h-4" />
-              <span>Tim Penggerak PKK</span>
-              <span className={`px-2 py-0.5 rounded-full text-[10px] ${selectedOrgType === 'PKK' ? 'bg-rose-900 text-rose-100' : 'bg-slate-200 text-slate-700'}`}>
-                {pkkMembers.length}
-              </span>
-            </button>
-
-            <button
-              onClick={() => setSelectedOrgType('KARANG_TARUNA')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                selectedOrgType === 'KARANG_TARUNA'
-                  ? 'bg-blue-700 text-white shadow-xs'
-                  : 'text-slate-700 hover:bg-white/70'
-              }`}
-            >
-              <Flame className="w-4 h-4" />
-              <span>Karang Taruna</span>
-              <span className={`px-2 py-0.5 rounded-full text-[10px] ${selectedOrgType === 'KARANG_TARUNA' ? 'bg-blue-900 text-blue-100' : 'bg-slate-200 text-slate-700'}`}>
-                {karangTarunaMembers.length}
-              </span>
-            </button>
-          </div>
-
-          {/* Add Org Member Form */}
-          {isAddingOrgMember && (
-            <form onSubmit={handleCreateOrgMember} className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                <h4 className="text-xs font-bold text-slate-900">
-                  Formulir Tambah Pengurus {selectedOrgType === 'PKK' ? 'TP PKK' : 'Karang Taruna'}
-                </h4>
-                <button
-                  type="button"
-                  onClick={() => setIsAddingOrgMember(false)}
-                  className="text-slate-400 hover:text-slate-600"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nama Lengkap *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Nama pengurus..."
-                    value={newOrgMember.name}
-                    onChange={(e) => setNewOrgMember({ ...newOrgMember, name: e.target.value })}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 bg-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Jabatan / Peran *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder={selectedOrgType === 'PKK' ? 'Ketua / Pokja I / Sekretaris...' : 'Ketua / Seksi Olahraga...'}
-                    value={newOrgMember.role}
-                    onChange={(e) => setNewOrgMember({ ...newOrgMember, role: e.target.value })}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 bg-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Periode Masa Bakti</label>
-                  <input
-                    type="text"
-                    placeholder="2021 - 2026"
-                    value={newOrgMember.period}
-                    onChange={(e) => setNewOrgMember({ ...newOrgMember, period: e.target.value })}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 bg-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">URL Foto (Opsional)</label>
-                  <input
-                    type="url"
-                    placeholder="https://..."
-                    value={newOrgMember.photoUrl}
-                    onChange={(e) => setNewOrgMember({ ...newOrgMember, photoUrl: e.target.value })}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 bg-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">No. Kontak / WhatsApp</label>
-                  <input
-                    type="tel"
-                    placeholder="08xxxxxxxxxx"
-                    value={newOrgMember.phone}
-                    onChange={(e) => setNewOrgMember({ ...newOrgMember, phone: e.target.value })}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 bg-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Status Verifikasi</label>
-                  <select
-                    value={newOrgMember.status}
-                    onChange={(e) => setNewOrgMember({ ...newOrgMember, status: e.target.value as VerificationStatus })}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 bg-white"
-                  >
-                    <option value="VERIFIED">TERVERIFIKASI SK DESA</option>
-                    <option value="SUPPORTED">TERCATAT</option>
-                    <option value="UNVERIFIED">BELUM TERVERIFIKASI</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsAddingOrgMember(false)}
-                  className="px-3.5 py-1.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold bg-white"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-1.5 rounded-xl bg-emerald-800 text-white text-xs font-bold hover:bg-emerald-700"
-                >
-                  Simpan Pengurus
-                </button>
-              </div>
-            </form>
-          )}
-
-          {/* Org Members List */}
-          {(() => {
-            const currentList = selectedOrgType === 'PKK' ? pkkMembers : karangTarunaMembers;
-            if (currentList.length === 0) {
-              return (
-                <div className="p-8 text-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-300 space-y-3">
-                  <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-400 mx-auto flex items-center justify-center">
-                    {selectedOrgType === 'PKK' ? <HeartHandshake className="w-6 h-6" /> : <Flame className="w-6 h-6" />}
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-xs font-bold text-slate-700">
-                      Data Struktur {selectedOrgType === 'PKK' ? 'TP PKK' : 'Karang Taruna'} Masih Kosong
-                    </p>
-                    <p className="text-[11px] text-slate-500 max-w-md mx-auto">
-                      Sesuai permintaan, data dibiarkan bersih kosongan tanpa dummy. Silakan klik tombol "Tambah Pengurus" di atas untuk mulai mengisi data resmi.
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setIsAddingOrgMember(true)}
-                    className="px-4 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-bold transition-all cursor-pointer"
-                  >
-                    + Tambah Pengurus Pertama
-                  </button>
-                </div>
-              );
-            }
-
-            return (
-              <div className="space-y-3">
-                {currentList.map((member) => {
-                  const isEditing = editingOrgMemberId === member.id;
-                  return (
-                    <div
-                      key={member.id}
-                      className="p-4 rounded-2xl border border-slate-200 hover:border-slate-300 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white"
-                    >
-                      {!isEditing ? (
-                        <div className="flex items-center gap-3 min-w-0">
-                          {member.photoUrl ? (
-                            <img src={member.photoUrl} alt="" className="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0" />
-                          ) : (
-                            <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs shrink-0">
-                              {member.name.charAt(0)}
-                            </div>
-                          )}
-                          <div className="min-w-0">
-                            <p className="text-xs font-bold text-slate-900 truncate">{member.name}</p>
-                            <p className={`text-[11px] font-semibold truncate ${selectedOrgType === 'PKK' ? 'text-rose-700' : 'text-blue-700'}`}>
-                              {member.role}
-                            </p>
-                            <p className="text-[10px] text-slate-500">{member.period || '2021 - 2026'}</p>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 flex-1">
-                          <input
-                            type="text"
-                            value={orgMemberForm.name ?? member.name}
-                            onChange={(e) => setOrgMemberForm({ ...orgMemberForm, name: e.target.value })}
-                            className="px-3 py-1.5 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 bg-white"
-                          />
-                          <input
-                            type="text"
-                            value={orgMemberForm.role ?? member.role}
-                            onChange={(e) => setOrgMemberForm({ ...orgMemberForm, role: e.target.value })}
-                            className="px-3 py-1.5 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 bg-white"
-                          />
-                          <input
-                            type="text"
-                            value={orgMemberForm.period ?? member.period}
-                            onChange={(e) => setOrgMemberForm({ ...orgMemberForm, period: e.target.value })}
-                            className="px-3 py-1.5 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 bg-white"
-                          />
-                        </div>
-                      )}
-
-                      <div className="flex items-center gap-2 shrink-0">
-                        {!isEditing ? (
-                          <>
-                            <button
-                              onClick={() => {
-                                setEditingOrgMemberId(member.id);
-                                setOrgMemberForm(member);
-                              }}
-                              className="p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors"
-                              title="Edit"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteOrgMember(member.id, member.name)}
-                              className="p-2 rounded-xl text-rose-600 hover:bg-rose-50 transition-colors"
-                              title="Hapus"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              onClick={() => setEditingOrgMemberId(null)}
-                              className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
-                            >
-                              Batal
-                            </button>
-                            <button
-                              onClick={() => handleSaveOrgMember(member.id)}
-                              className="px-3.5 py-1.5 text-xs font-bold bg-emerald-800 text-white rounded-xl hover:bg-emerald-700 flex items-center gap-1"
-                            >
-                              <Check className="w-3.5 h-3.5" />
-                              <span>Simpan</span>
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })()}
-        </div>
-      )}
-
       {/* Top Admin Banner */}
       <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-emerald-950 text-white rounded-3xl p-8 sm:p-10 shadow-xl border border-slate-800 relative overflow-hidden">
         <div className="max-w-3xl space-y-3 relative z-10">
@@ -814,7 +490,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
             Admin Panel Desa Brabo Digital
           </h1>
           <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
-            Kelola struktur pamong, pejabat penandatangan, template surat mandiri tanpa koding, antrean permohonan warga, peta digital koordinat, warta pengumuman, dan galeri dokumentasi kegiatan.
+            Kelola struktur pamong, kewilayahan 3 dusun, status verifikasi data transparan, pejabat penandatangan, template surat mandiri, antrean permohonan warga, warta berita, dan dokumentasi kegiatan.
           </p>
         </div>
       </div>
@@ -824,6 +500,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
         <div className="flex gap-1.5 min-w-max">
           {[
             { id: 'pamong', label: 'Pamong & SOTK', icon: Users },
+            { id: 'kewilayahan', label: `Kewilayahan (${hamlets.length} Dusun)`, icon: Compass },
             { id: 'kelembagaan', label: `Kelembagaan (${pkkMembers.length + karangTarunaMembers.length})`, icon: HeartHandshake },
             { id: 'signatories', label: 'Penandatangan', icon: PenTool },
             { id: 'complaints', label: `Aduan Warga (${complaints.length})`, icon: MessageSquare },
@@ -912,58 +589,80 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
                     KADES
                   </div>
                 )}
-                <div className="space-y-1.5 text-xs text-slate-700">
-                  <p className="text-lg font-extrabold text-slate-900">{villageHead.name}</p>
+                <div className="space-y-2 text-xs text-slate-700 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-lg font-extrabold text-slate-900">{villageHead.name}</p>
+                    <VerificationBadge
+                      status={villageHead.status || 'VERIFIED'}
+                      verificationSource={villageHead.verificationSource || 'VERIFIED_DESA'}
+                      verificationNote={villageHead.verificationNote}
+                      customSourceName={villageHead.customSourceName}
+                      sourceId={villageHead.sourceId || 'SRC-PEMDES-BRABO'}
+                      onOpenSource={onOpenSource}
+                    />
+                  </div>
                   <p className="font-semibold text-emerald-800">{villageHead.role}</p>
                   <p>Masa Jabatan: <strong>{villageHead.period || '2019 - Sekarang'}</strong> (Dilantik: {villageHead.appointmentDate || '18 Des 2019'})</p>
                   <p className="text-slate-600">{villageHead.description}</p>
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nama Lengkap & Gelar</label>
-                  <input
-                    type="text"
-                    value={headForm.name}
-                    onChange={(e) => setHeadForm({ ...headForm, name: e.target.value })}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
-                  />
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Nama Lengkap & Gelar</label>
+                    <input
+                      type="text"
+                      value={headForm.name}
+                      onChange={(e) => setHeadForm({ ...headForm, name: e.target.value })}
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Jabatan</label>
+                    <input
+                      type="text"
+                      value={headForm.role}
+                      onChange={(e) => setHeadForm({ ...headForm, role: e.target.value })}
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Masa Jabatan</label>
+                    <input
+                      type="text"
+                      value={headForm.period || ''}
+                      onChange={(e) => setHeadForm({ ...headForm, period: e.target.value })}
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <PhotoUploadInput
+                      label="Foto Profil Kepala Desa"
+                      value={headForm.photoUrl || ''}
+                      onChange={(url) => setHeadForm({ ...headForm, photoUrl: url })}
+                      folderName="kades"
+                      helperText="Unggah pas foto resmi Kepala Desa (otomatis dioptimalkan WebP & Supabase)"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Deskripsi / Keterangan</label>
+                    <textarea
+                      rows={2}
+                      value={headForm.description || ''}
+                      onChange={(e) => setHeadForm({ ...headForm, description: e.target.value })}
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Jabatan</label>
-                  <input
-                    type="text"
-                    value={headForm.role}
-                    onChange={(e) => setHeadForm({ ...headForm, role: e.target.value })}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Masa Jabatan</label>
-                  <input
-                    type="text"
-                    value={headForm.period || ''}
-                    onChange={(e) => setHeadForm({ ...headForm, period: e.target.value })}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <PhotoUploadInput
-                    label="Foto Profil Kepala Desa"
-                    value={headForm.photoUrl || ''}
-                    onChange={(url) => setHeadForm({ ...headForm, photoUrl: url })}
-                    folderName="kades"
-                    helperText="Unggah pas foto resmi Kepala Desa (otomatis dioptimalkan WebP & Supabase)"
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Deskripsi / Keterangan</label>
-                  <textarea
-                    rows={2}
-                    value={headForm.description || ''}
-                    onChange={(e) => setHeadForm({ ...headForm, description: e.target.value })}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
+
+                {/* Verification Source Selector for Kepala Desa */}
+                <div className="pt-3 border-t border-slate-100">
+                  <VerificationSourceSelector
+                    verificationSource={headForm.verificationSource || 'VERIFIED_DESA'}
+                    verificationNote={headForm.verificationNote || ''}
+                    customSourceName={headForm.customSourceName || ''}
+                    onChange={(fields) => setHeadForm({ ...headForm, ...fields })}
                   />
                 </div>
               </div>
@@ -978,7 +677,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
                   Daftar Pamong Desa & SOTK ({officials.length})
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Sekretaris Desa, Kaur, Kasi, dan Kepala Dusun (Kadus)
+                  Sekretaris Desa, Kaur, Kasi, dan Kepala Dusun (Kadus) lengkap dengan status verifikasi
                 </p>
               </div>
 
@@ -1039,6 +738,16 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
                   </div>
                 </div>
 
+                {/* Verification Source Selector for New Official */}
+                <div className="pt-2">
+                  <VerificationSourceSelector
+                    verificationSource={newOfficial.verificationSource || 'VERIFIED_DESA'}
+                    verificationNote={newOfficial.verificationNote || ''}
+                    customSourceName={newOfficial.customSourceName || ''}
+                    onChange={(fields) => setNewOfficial({ ...newOfficial, ...fields })}
+                  />
+                </div>
+
                 <div className="flex justify-end gap-2 pt-2">
                   <button
                     type="button"
@@ -1067,7 +776,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
                     className="p-4 rounded-2xl border border-slate-200 hover:border-slate-300 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white"
                   >
                     {!isEditing ? (
-                      <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
                         {official.photoUrl ? (
                           <img src={official.photoUrl} alt="" className="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0" />
                         ) : (
@@ -1075,8 +784,18 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
                             {official.name.charAt(0)}
                           </div>
                         )}
-                        <div className="min-w-0">
-                          <p className="text-xs font-bold text-slate-900 truncate">{official.name}</p>
+                        <div className="min-w-0 space-y-1 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="text-xs font-bold text-slate-900 truncate">{official.name}</p>
+                            <VerificationBadge
+                              status={official.status || 'VERIFIED'}
+                              verificationSource={official.verificationSource || 'VERIFIED_DESA'}
+                              verificationNote={official.verificationNote}
+                              customSourceName={official.customSourceName}
+                              sourceId={official.sourceId || 'SRC-PEMDES-BRABO'}
+                              onOpenSource={onOpenSource}
+                            />
+                          </div>
                           <p className="text-[11px] text-emerald-800 font-semibold truncate">{official.role}</p>
                           <p className="text-[10px] text-slate-500">{official.period || '2019 - Sekarang'}</p>
                         </div>
@@ -1124,6 +843,16 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
                               helperText="Pilih atau ganti foto profil pamong ini"
                             />
                           </div>
+                        </div>
+
+                        {/* Verification Source Selector in Edit Form */}
+                        <div className="pt-2 border-t border-slate-200">
+                          <VerificationSourceSelector
+                            verificationSource={officialForm.verificationSource ?? official.verificationSource ?? 'VERIFIED_DESA'}
+                            verificationNote={officialForm.verificationNote ?? official.verificationNote ?? ''}
+                            customSourceName={officialForm.customSourceName ?? official.customSourceName ?? ''}
+                            onChange={(fields) => setOfficialForm({ ...officialForm, ...fields })}
+                          />
                         </div>
                       </div>
                     )}
@@ -1181,289 +910,17 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
       )}
 
       {/* ==================================================== */}
+      {/* TAB KEWILAYAHAN: 3 DUSUN CMS */}
+      {/* ==================================================== */}
+      {activeTab === 'kewilayahan' && (
+        <HamletsTab onOpenSource={onOpenSource} showToast={showToast} />
+      )}
+
+      {/* ==================================================== */}
       {/* TAB KELEMBAGAAN: PKK & KARANG TARUNA */}
       {/* ==================================================== */}
       {activeTab === 'kelembagaan' && (
-        <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200 space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-            <div>
-              <h3 className="text-base font-bold text-slate-900">
-                Struktur Kelembagaan Desa (TP PKK & Karang Taruna)
-              </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Kelola data pengurus TP PKK dan Karang Taruna Desa Brabo. Data siap diinput oleh admin secara mandiri tanpa dummy data.
-              </p>
-            </div>
-
-            <button
-              onClick={() => setIsAddingOrgMember(!isAddingOrgMember)}
-              className="px-3.5 py-2 rounded-xl bg-emerald-800 text-white text-xs font-bold flex items-center gap-1.5 hover:bg-emerald-700 transition-colors cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Tambah Pengurus {selectedOrgType === 'PKK' ? 'PKK' : 'Karang Taruna'}</span>
-            </button>
-          </div>
-
-          {/* Org Selector Switch */}
-          <div className="flex gap-2 p-1.5 bg-slate-100/80 rounded-2xl border border-slate-200 w-fit">
-            <button
-              onClick={() => setSelectedOrgType('PKK')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                selectedOrgType === 'PKK'
-                  ? 'bg-rose-700 text-white shadow-xs'
-                  : 'text-slate-700 hover:bg-white/70'
-              }`}
-            >
-              <HeartHandshake className="w-4 h-4" />
-              <span>Tim Penggerak PKK</span>
-              <span className={`px-2 py-0.5 rounded-full text-[10px] ${selectedOrgType === 'PKK' ? 'bg-rose-900 text-rose-100' : 'bg-slate-200 text-slate-700'}`}>
-                {pkkMembers.length}
-              </span>
-            </button>
-
-            <button
-              onClick={() => setSelectedOrgType('KARANG_TARUNA')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                selectedOrgType === 'KARANG_TARUNA'
-                  ? 'bg-blue-700 text-white shadow-xs'
-                  : 'text-slate-700 hover:bg-white/70'
-              }`}
-            >
-              <Flame className="w-4 h-4" />
-              <span>Karang Taruna</span>
-              <span className={`px-2 py-0.5 rounded-full text-[10px] ${selectedOrgType === 'KARANG_TARUNA' ? 'bg-blue-900 text-blue-100' : 'bg-slate-200 text-slate-700'}`}>
-                {karangTarunaMembers.length}
-              </span>
-            </button>
-          </div>
-
-          {/* Add Org Member Form */}
-          {isAddingOrgMember && (
-            <form onSubmit={handleCreateOrgMember} className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                <h4 className="text-xs font-bold text-slate-900">
-                  Formulir Tambah Pengurus {selectedOrgType === 'PKK' ? 'TP PKK' : 'Karang Taruna'}
-                </h4>
-                <button
-                  type="button"
-                  onClick={() => setIsAddingOrgMember(false)}
-                  className="text-slate-400 hover:text-slate-600 cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nama Lengkap *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Nama pengurus..."
-                    value={newOrgMember.name}
-                    onChange={(e) => setNewOrgMember({ ...newOrgMember, name: e.target.value })}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 bg-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Jabatan / Peran *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder={selectedOrgType === 'PKK' ? 'Ketua / Pokja I / Sekretaris...' : 'Ketua / Seksi Olahraga...'}
-                    value={newOrgMember.role}
-                    onChange={(e) => setNewOrgMember({ ...newOrgMember, role: e.target.value })}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 bg-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Periode Masa Bakti</label>
-                  <input
-                    type="text"
-                    placeholder="2021 - 2026"
-                    value={newOrgMember.period}
-                    onChange={(e) => setNewOrgMember({ ...newOrgMember, period: e.target.value })}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 bg-white"
-                  />
-                </div>
-
-                <div className="sm:col-span-2 md:col-span-3">
-                  <PhotoUploadInput
-                    label="Foto Profil Pengurus"
-                    value={newOrgMember.photoUrl}
-                    onChange={(url) => setNewOrgMember({ ...newOrgMember, photoUrl: url })}
-                    folderName="kelembagaan"
-                    helperText="Unggah pas foto profil pengurus kelembagaan (JPG, PNG, WebP)"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">No. Kontak / WhatsApp</label>
-                  <input
-                    type="tel"
-                    placeholder="08xxxxxxxxxx"
-                    value={newOrgMember.phone}
-                    onChange={(e) => setNewOrgMember({ ...newOrgMember, phone: e.target.value })}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 bg-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Status Verifikasi</label>
-                  <select
-                    value={newOrgMember.status}
-                    onChange={(e) => setNewOrgMember({ ...newOrgMember, status: e.target.value as VerificationStatus })}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 bg-white"
-                  >
-                    <option value="VERIFIED">TERVERIFIKASI SK DESA</option>
-                    <option value="SUPPORTED">TERCATAT</option>
-                    <option value="UNVERIFIED">BELUM TERVERIFIKASI</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsAddingOrgMember(false)}
-                  className="px-3.5 py-1.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold bg-white cursor-pointer"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-1.5 rounded-xl bg-emerald-800 text-white text-xs font-bold hover:bg-emerald-700 cursor-pointer"
-                >
-                  Simpan Pengurus
-                </button>
-              </div>
-            </form>
-          )}
-
-          {/* Org Members List */}
-          {(() => {
-            const currentList = selectedOrgType === 'PKK' ? pkkMembers : karangTarunaMembers;
-            if (currentList.length === 0) {
-              return (
-                <div className="p-8 text-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-300 space-y-3">
-                  <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-400 mx-auto flex items-center justify-center">
-                    {selectedOrgType === 'PKK' ? <HeartHandshake className="w-6 h-6" /> : <Flame className="w-6 h-6" />}
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-xs font-bold text-slate-700">
-                      Data Struktur {selectedOrgType === 'PKK' ? 'TP PKK' : 'Karang Taruna'} Masih Kosong
-                    </p>
-                    <p className="text-[11px] text-slate-500 max-w-md mx-auto">
-                      Data sengaja disiapkan kosongan tanpa dummy. Silakan klik tombol "Tambah Pengurus" untuk menginput susunan pengurus resmi.
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setIsAddingOrgMember(true)}
-                    className="px-4 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-bold transition-all cursor-pointer"
-                  >
-                    + Tambah Pengurus Pertama
-                  </button>
-                </div>
-              );
-            }
-
-            return (
-              <div className="space-y-3">
-                {currentList.map((member) => {
-                  const isEditing = editingOrgMemberId === member.id;
-                  return (
-                    <div
-                      key={member.id}
-                      className="p-4 rounded-2xl border border-slate-200 hover:border-slate-300 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white"
-                    >
-                      {!isEditing ? (
-                        <div className="flex items-center gap-3 min-w-0">
-                          {member.photoUrl ? (
-                            <img src={member.photoUrl} alt="" className="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0" />
-                          ) : (
-                            <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs shrink-0">
-                              {member.name.charAt(0)}
-                            </div>
-                          )}
-                          <div className="min-w-0">
-                            <p className="text-xs font-bold text-slate-900 truncate">{member.name}</p>
-                            <p className={`text-[11px] font-semibold truncate ${selectedOrgType === 'PKK' ? 'text-rose-700' : 'text-blue-700'}`}>
-                              {member.role}
-                            </p>
-                            <p className="text-[10px] text-slate-500">{member.period || '2021 - 2026'}</p>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 flex-1">
-                          <input
-                            type="text"
-                            value={orgMemberForm.name ?? member.name}
-                            onChange={(e) => setOrgMemberForm({ ...orgMemberForm, name: e.target.value })}
-                            className="px-3 py-1.5 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 bg-white"
-                          />
-                          <input
-                            type="text"
-                            value={orgMemberForm.role ?? member.role}
-                            onChange={(e) => setOrgMemberForm({ ...orgMemberForm, role: e.target.value })}
-                            className="px-3 py-1.5 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 bg-white"
-                          />
-                          <input
-                            type="text"
-                            value={orgMemberForm.period ?? member.period}
-                            onChange={(e) => setOrgMemberForm({ ...orgMemberForm, period: e.target.value })}
-                            className="px-3 py-1.5 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 bg-white"
-                          />
-                        </div>
-                      )}
-
-                      <div className="flex items-center gap-2 shrink-0">
-                        {!isEditing ? (
-                          <>
-                            <button
-                              onClick={() => {
-                                setEditingOrgMemberId(member.id);
-                                setOrgMemberForm(member);
-                              }}
-                              className="p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
-                              title="Edit"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteOrgMember(member.id, member.name)}
-                              className="p-2 rounded-xl text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                              title="Hapus"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              onClick={() => setEditingOrgMemberId(null)}
-                              className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
-                            >
-                              Batal
-                            </button>
-                            <button
-                              onClick={() => handleSaveOrgMember(member.id)}
-                              className="px-3.5 py-1.5 text-xs font-bold bg-emerald-800 text-white rounded-xl hover:bg-emerald-700 flex items-center gap-1 cursor-pointer"
-                            >
-                              <Check className="w-3.5 h-3.5" />
-                              <span>Simpan</span>
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })()}
-        </div>
+        <OrganizationsTab onOpenSource={onOpenSource} showToast={showToast} />
       )}
 
       {/* ==================================================== */}

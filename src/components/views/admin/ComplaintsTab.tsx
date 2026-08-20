@@ -183,6 +183,21 @@ export const ComplaintsTab: React.FC = () => {
     }
   };
 
+  const getWhatsAppLink = (complaint: CitizenComplaint) => {
+    if (!complaint.phone) return null;
+    let clean = complaint.phone.replace(/[^0-9]/g, '');
+    if (clean.startsWith('0')) {
+      clean = '62' + clean.substring(1);
+    }
+    const message = `Halo Bapak/Ibu ${complaint.isAnonymous ? 'Warga' : complaint.reporterName}, ini dari Kantor Balai Desa Brabo mengonfirmasi Laporan Aduan Anda:\n\n` +
+      `📌 *No. Resi:* ${complaint.trackingCode}\n` +
+      `📋 *Judul:* ${complaint.title}\n` +
+      `📊 *Status:* ${getStatusLabel(complaint.status)}\n` +
+      (complaint.adminResponse ? `💬 *Tanggapan:* ${complaint.adminResponse}\n\n` : '\n') +
+      `Terima kasih atas partisipasi aktif Anda dalam membangun Desa Brabo.`;
+    return `https://wa.me/${clean}?text=${encodeURIComponent(message)}`;
+  };
+
   // Metrics
   const countPending = complaints.filter(c => c.status === 'MENUNGGU_VERIFIKASI').length;
   const countProcess = complaints.filter(c => c.status === 'SEDANG_DITINDAKLANJUTI' || c.status === 'DIVERIFIKASI').length;
@@ -507,6 +522,18 @@ export const ComplaintsTab: React.FC = () => {
                         <span>Validasi & Tanggapi</span>
                       </button>
 
+                      {complaint.phone && getWhatsAppLink(complaint) && (
+                        <a
+                          href={getWhatsAppLink(complaint)!}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="w-full py-1.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-xs"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" />
+                          <span>Hubungi via WhatsApp</span>
+                        </a>
+                      )}
+
                       <div className="grid grid-cols-2 gap-1.5">
                         {complaint.status !== 'SEDANG_DITINDAKLANJUTI' && (
                           <button
@@ -639,21 +666,37 @@ export const ComplaintsTab: React.FC = () => {
                 </span>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setSelectedComplaint(null)}
-                  className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50"
-                >
-                  Tutup
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-2 shadow-xs"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>Simpan & Terbitkan Tanggapan</span>
-                </button>
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">
+                <div>
+                  {selectedComplaint.phone && getWhatsAppLink(selectedComplaint) && (
+                    <a
+                      href={getWhatsAppLink(selectedComplaint)!}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      <span>Kirim Info via WhatsApp</span>
+                    </a>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedComplaint(null)}
+                    className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50"
+                  >
+                    Tutup
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-2 shadow-xs"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>Simpan & Terbitkan Tanggapan</span>
+                  </button>
+                </div>
               </div>
             </form>
           </div>

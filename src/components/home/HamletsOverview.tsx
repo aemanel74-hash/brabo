@@ -1,5 +1,5 @@
 import React from 'react';
-import { HAMLETS_DATA } from '../../data/research/hamlets';
+import { useVillageData } from '../../context/VillageDataContext';
 import { NavTab } from '../layout/Navbar';
 import { Compass, MapPin, Sparkles, ArrowRight, ShieldCheck, Landmark } from 'lucide-react';
 import { VerificationBadge } from '../common/VerificationBadge';
@@ -10,6 +10,8 @@ interface HamletsOverviewProps {
 }
 
 export const HamletsOverview: React.FC<HamletsOverviewProps> = ({ onSelectTab, onOpenSource }) => {
+  const { hamlets } = useVillageData();
+
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
@@ -24,7 +26,7 @@ export const HamletsOverview: React.FC<HamletsOverviewProps> = ({ onSelectTab, o
             Tiga Dusun Penyangga Desa Brabo
           </h2>
           <p className="text-sm text-slate-600 max-w-2xl mt-1">
-            Desa Brabo secara resmi terbagi ke dalam 3 dusun dengan karakter historis, pusat administrasi, dan lumbung pertanian yang khas.
+            Desa Brabo secara resmi terbagi ke dalam {hamlets.length} dusun dengan karakter historis, pusat administrasi, dan lumbung pertanian yang khas.
           </p>
         </div>
 
@@ -38,7 +40,7 @@ export const HamletsOverview: React.FC<HamletsOverviewProps> = ({ onSelectTab, o
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {HAMLETS_DATA.map((hamlet) => {
+        {hamlets.map((hamlet) => {
           return (
             <div
               key={hamlet.id}
@@ -57,7 +59,14 @@ export const HamletsOverview: React.FC<HamletsOverviewProps> = ({ onSelectTab, o
                       <p className="text-xs text-slate-500 font-medium">{hamlet.alias}</p>
                     </div>
                   </div>
-                  <VerificationBadge status={hamlet.status} sourceId={hamlet.sourceId} onOpenSource={onOpenSource} />
+                  <VerificationBadge
+                    status={hamlet.status}
+                    verificationSource={hamlet.verificationSource}
+                    verificationNote={hamlet.verificationNote}
+                    customSourceName={hamlet.customSourceName}
+                    sourceId={hamlet.sourceId}
+                    onOpenSource={onOpenSource}
+                  />
                 </div>
 
                 <p className="text-xs leading-relaxed text-slate-600 line-clamp-3">
@@ -90,13 +99,15 @@ export const HamletsOverview: React.FC<HamletsOverviewProps> = ({ onSelectTab, o
               </div>
 
               <div className="pt-5 mt-5 border-t border-slate-100 flex items-center justify-between">
-                <div className="text-[11px] text-slate-500">
-                  <span className="font-medium text-slate-700">Kepala Dusun:</span>
-                  <p className="italic text-amber-700">Memerlukan verifikasi desa</p>
+                <div className="text-[11px] text-slate-600 flex-1 min-w-0 pr-2">
+                  <span className="font-medium text-slate-700">Kepala Dusun: </span>
+                  <span className={hamlet.headName.toLowerCase().includes('belum') ? 'italic text-amber-700' : 'font-semibold text-slate-900'}>
+                    {hamlet.headName}
+                  </span>
                 </div>
                 <button
                   onClick={() => onSelectTab('dusun')}
-                  className="p-2 rounded-lg text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors"
+                  className="p-2 rounded-lg text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors shrink-0"
                   title="Lihat Detail Dusun"
                 >
                   <ArrowRight className="w-4 h-4" />

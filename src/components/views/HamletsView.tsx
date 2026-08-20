@@ -68,13 +68,20 @@ export const HamletsView: React.FC<HamletsViewProps> = ({ onOpenSource }) => {
               }`}
             >
               <div className="space-y-2">
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center gap-2">
                   <span className={`text-xs font-bold font-mono px-2.5 py-0.5 rounded-md ${
                     isSelected ? 'bg-emerald-900 text-emerald-200' : 'bg-slate-100 text-slate-700'
                   }`}>
                     Dusun 0{hamlet.order}
                   </span>
-                  <VerificationBadge status={hamlet.status} sourceId={hamlet.sourceId} onOpenSource={onOpenSource} />
+                  <VerificationBadge
+                    status={hamlet.status}
+                    verificationSource={hamlet.verificationSource}
+                    verificationNote={hamlet.verificationNote}
+                    customSourceName={hamlet.customSourceName}
+                    sourceId={hamlet.sourceId}
+                    onOpenSource={onOpenSource}
+                  />
                 </div>
 
                 <h3 className="text-lg font-bold">{hamlet.name}</h3>
@@ -97,25 +104,39 @@ export const HamletsView: React.FC<HamletsViewProps> = ({ onOpenSource }) => {
         <div className="bg-white rounded-3xl p-6 sm:p-10 shadow-sm border border-slate-200 space-y-8 animate-in fade-in duration-200">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded bg-emerald-100 text-emerald-800">
                   Dusun 0{selectedHamlet.order} • {selectedHamlet.alias}
                 </span>
-                <VerificationBadge status={selectedHamlet.status} sourceId={selectedHamlet.sourceId} onOpenSource={onOpenSource} />
+                <VerificationBadge
+                  status={selectedHamlet.status}
+                  verificationSource={selectedHamlet.verificationSource}
+                  verificationNote={selectedHamlet.verificationNote}
+                  customSourceName={selectedHamlet.customSourceName}
+                  sourceId={selectedHamlet.sourceId}
+                  onOpenSource={onOpenSource}
+                />
               </div>
               <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2">
                 {selectedHamlet.name}
               </h2>
             </div>
 
-            <div className="bg-slate-50 px-4 py-3 rounded-2xl border border-slate-200 text-xs text-slate-600 flex items-center gap-2">
+            <div className="bg-slate-50 px-4 py-3 rounded-2xl border border-slate-200 text-xs text-slate-600 flex flex-wrap items-center gap-2">
               <div>
                 <span className="font-semibold text-slate-800">Kepala Dusun: </span>
-                <span className={`font-medium ${selectedHamlet.headName.includes('belum') ? 'italic text-amber-700' : 'font-bold text-slate-900'}`}>
+                <span className={`font-medium ${selectedHamlet.headName.toLowerCase().includes('belum') ? 'italic text-amber-700' : 'font-bold text-slate-900'}`}>
                   {selectedHamlet.headName}
                 </span>
               </div>
-              <VerificationBadge status={selectedHamlet.headStatus} sourceId={selectedHamlet.headSourceId} onOpenSource={onOpenSource} />
+              <VerificationBadge
+                status={selectedHamlet.headStatus}
+                verificationSource={selectedHamlet.verificationSource}
+                verificationNote={selectedHamlet.verificationNote}
+                customSourceName={selectedHamlet.customSourceName}
+                sourceId={selectedHamlet.headSourceId}
+                onOpenSource={onOpenSource}
+              />
             </div>
           </div>
 

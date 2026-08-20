@@ -49,6 +49,13 @@ export const DocumentUploadInput: React.FC<DocumentUploadInputProps> = ({
       const detectedType = getExtensionType(file.name);
       let finalUrl = '';
 
+      // Max 10MB size limit
+      if (file.size > 10 * 1024 * 1024) {
+        setUploadError('Ukuran berkas melebihi batas maksimal 10MB.');
+        setIsUploading(false);
+        return;
+      }
+
       // Check if Supabase client is configured for cloud upload
       if (isSupabaseConfigured()) {
         const supabase = getSupabaseClient();
@@ -57,14 +64,15 @@ export const DocumentUploadInput: React.FC<DocumentUploadInputProps> = ({
           const cleanName = `${folderName}/${timestamp}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
           
           const { error: uploadErr } = await supabase.storage
-            .from(SUPABASE_BUCKETS.MEDIA)
+            .from(SUPABASE_BUCKETS.DOCUMENTS)
             .upload(cleanName, file, {
+              contentType: file.type || 'application/octet-stream',
               cacheControl: '3600',
               upsert: true,
             });
 
           if (!uploadErr) {
-            const { data } = supabase.storage.from(SUPABASE_BUCKETS.MEDIA).getPublicUrl(cleanName);
+            const { data } = supabase.storage.from(SUPABASE_BUCKETS.DOCUMENTS).getPublicUrl(cleanName);
             finalUrl = data.publicUrl;
           }
         }
@@ -72,6 +80,13 @@ export const DocumentUploadInput: React.FC<DocumentUploadInputProps> = ({
 
       // If Supabase upload didn't yield a URL or isn't connected, convert to Data URL for local resilience
       if (!finalUrl) {
+        // Prevent huge local base64 (> 2MB) when offline to protect localStorage quota
+        if (file.size > 2.5 * 1024 * 1024) {
+          setUploadError('Saat mode offline (tanpa Supabase), ukuran berkas dibatasi maksimal 2.5MB agar penyimpanan browser tidak penuh. Harap gunakan Tautan URL atau aktifkan Supabase.');
+          setIsUploading(false);
+          return;
+        }
+
         finalUrl = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.onload = () => resolve(reader.result as string);
