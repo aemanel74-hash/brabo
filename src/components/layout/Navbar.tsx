@@ -81,7 +81,11 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onSelectTab }) => {
               <ShieldCheck className="w-3 h-3 text-emerald-300" />
               PORTAL RESMI
             </span>
-            <span className="truncate text-[11px] sm:text-xs text-emerald-200/90">
+            <span className="inline-flex items-center gap-1 bg-emerald-900/90 text-emerald-300 px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-semibold border border-emerald-800 shrink-0">
+              <Sparkles className="w-2.5 h-2.5 text-amber-300" />
+              KKN PM 02 UNIMUS
+            </span>
+            <span className="truncate text-[11px] sm:text-xs text-emerald-200/90 hidden md:inline">
               Kec. Tanggungharjo, Kab. Grobogan, Jawa Tengah • Kode Pos 58166
             </span>
           </div>

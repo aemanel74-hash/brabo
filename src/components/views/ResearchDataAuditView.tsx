@@ -42,20 +42,47 @@ export const ResearchDataAuditView: React.FC<ResearchDataAuditViewProps> = ({ on
       {/* Banner */}
       <div className="bg-gradient-to-r from-emerald-950 via-slate-900 to-slate-900 text-white rounded-3xl p-8 sm:p-10 shadow-xl relative overflow-hidden">
         <div className="max-w-3xl space-y-3 relative z-10">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-800 text-emerald-200 border border-emerald-700">
               Audit Integritas Data & Sumber Publik
             </span>
             <span className="px-2.5 py-0.5 rounded-full text-xs bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/40">
-              Prinsip: RESEARCH → VERIFY → DEVELOP
+              KKN-PM 02 UNIMUS × PEMDES BRABO
             </span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
-            Pusat Verifikasi Sumber Riset KKN
+            Pusat Verifikasi Sumber Riset KKN PM 02 UNIMUS
           </h1>
           <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
-            Situs web ini menolak praktik rekayasa data. Setiap informasi (sejarah, demografi, sekolah, nama kepala desa) ditautkan ke kode sumber resmi dan label verifikasi yang dapat diaudit secara terbuka.
+            Situs web ini dirancang melalui Program Pengabdian Masyarakat oleh <strong>KKN PM 02 DESA BRABO Universitas Muhammadiyah Semarang (UNIMUS)</strong> bersama Pemerintah Desa Brabo. Setiap informasi (sejarah, demografi, sekolah, lembaga, APBDes) ditautkan ke kode sumber resmi yang dapat diaudit secara terbuka.
           </p>
+        </div>
+      </div>
+
+      {/* KKN Collaboration Highlight Profile Card */}
+      <div className="p-6 sm:p-8 rounded-3xl bg-white border border-slate-200 shadow-sm relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <div className="space-y-2 max-w-2xl">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-emerald-900 text-xs font-bold uppercase tracking-wider">
+            <Sparkles className="w-3.5 h-3.5 text-emerald-700" />
+            <span>Kemitraan Pengabdian Masyarakat Perguruan Tinggi</span>
+          </div>
+          <h3 className="text-xl font-bold text-slate-900">
+            KKN PM 02 DESA BRABO — Universitas Muhammadiyah Semarang (UNIMUS)
+          </h3>
+          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+            Inisiatif digitalisasi ini merupakan wujud kontribusi nyata mahasiswa KKN Pemberdayaan Masyarakat (KKN-PM) Kelompok 02 UNIMUS dalam mendukung tata kelola keterbukaan informasi publik, sistem administrasi surat mandiri, dan inventarisasi potensi desa berbasis data akurat.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 w-full md:w-auto shrink-0">
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-center">
+            <p className="text-xs font-bold text-slate-900">UNIMUS</p>
+            <p className="text-[10px] text-slate-500">Perguruan Tinggi</p>
+          </div>
+          <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-center">
+            <p className="text-xs font-bold text-emerald-900">KKN-PM 02</p>
+            <p className="text-[10px] text-emerald-700">Desa Brabo</p>
+          </div>
         </div>
       </div>
 

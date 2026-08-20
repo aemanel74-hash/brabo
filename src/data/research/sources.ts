@@ -86,6 +86,16 @@ export const RESEARCH_SOURCES: Record<string, SourceCitation> = {
     verificationStatus: 'VERIFIED',
     notes: 'Kode pos resmi Desa Brabo adalah 58166.',
   },
+  'SRC-KKN-PM02-UNIMUS': {
+    id: 'SRC-KKN-PM02-UNIMUS',
+    title: 'Dokumentasi Monografi & Program Digitalisasi KKN PM 02 DESA BRABO UNIMUS',
+    publisher: 'Tim KKN-PM Kelompok 02 Universitas Muhammadiyah Semarang (UNIMUS)',
+    year: '2026',
+    accessedAt: '20 Agustus 2026',
+    tier: 2,
+    verificationStatus: 'SUPPORTED',
+    notes: 'Inventarisasi data potensi wilayah, babad sejarah desa, direktori fasilitas keagamaan/pendidikan, serta integrasi layanan surat mandiri desa bersama Pemdes Brabo.',
+  },
   'SRC-KKN-UNVERIFIED': {
     id: 'SRC-KKN-UNVERIFIED',
     title: 'Format Verifikasi Lapangan KKN Desa Brabo',

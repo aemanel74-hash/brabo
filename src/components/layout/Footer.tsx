@@ -25,7 +25,7 @@ export const Footer: React.FC<FooterProps> = ({ onSelectTab, onOpenSourceModal }
               Desa Brabo: Pusat Syiar Santri & Kemandirian Agraris
             </h3>
             <p className="text-xs text-emerald-200/80 mt-1 max-w-2xl">
-              Dibangun dengan transparansi data riset publik terverifikasi oleh Tim KKN bersama Pemerintah Desa Brabo.
+              Dikembangkan melalui program kolaborasi pengabdian masyarakat oleh <strong className="text-emerald-300 font-bold">Tim KKN-PM 02 Universitas Muhammadiyah Semarang (UNIMUS)</strong> bersama Pemerintah Desa Brabo.
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -201,9 +201,9 @@ export const Footer: React.FC<FooterProps> = ({ onSelectTab, onOpenSourceModal }
 
         {/* Bottom Disclaimer & Copyright */}
         <div className="mt-12 pt-6 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-          <p>© {new Date().getFullYear()} Pemerintah Desa Brabo & Tim KKN. Mengacu pada standar sistem keterbukaan OpenSID.</p>
+          <p>© {new Date().getFullYear()} Pemerintah Desa Brabo • Inisiatif Digitalisasi & Pengabdian Masyarakat oleh <span className="text-slate-400 font-semibold">KKN PM 02 DESA BRABO UNIMUS</span>.</p>
           <div className="flex items-center gap-2 text-slate-400">
-            <span>Dirancang dengan integritas data publik</span>
+            <span>Standar Transparansi & Data Riset Publik</span>
             <ShieldCheck className="w-4 h-4 text-emerald-500" />
           </div>
         </div>
