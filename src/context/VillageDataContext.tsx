@@ -17,7 +17,8 @@ import {
   CommunityOrgType,
   CitizenActivityPhoto,
   CitizenComplaint,
-  ComplaintStatus
+  ComplaintStatus,
+  VillageUmkm
 } from '../types';
 import { VILLAGE_HEAD, VILLAGE_OFFICIALS } from '../data/research/government';
 import { VILLAGE_ACTIVITIES } from '../data/research/activities';
@@ -28,6 +29,7 @@ import { INITIAL_LETTER_TEMPLATES } from '../data/research/letterTemplates';
 import { INITIAL_MAP_LOCATIONS, INITIAL_VILLAGE_BOUNDARY } from '../data/research/mapLocations';
 import { INITIAL_MEDIA } from '../data/research/media';
 import { INITIAL_COMPLAINTS } from '../data/research/complaints';
+import { INITIAL_UMKM_DATA } from '../data/research/umkm';
 
 export type { 
   DocumentSubmission, 
@@ -237,6 +239,13 @@ interface VillageDataContextType {
   updateCitizenPhotoStatus: (id: string, status: CitizenActivityPhoto['status']) => void;
   deleteCitizenPhoto: (id: string) => void;
 
+  // UMKM Desa Brabo (Direktori & Pendaftaran Mandiri Warga)
+  umkmList: VillageUmkm[];
+  addUmkm: (umkm: Omit<VillageUmkm, 'id' | 'submittedAt' | 'status' | 'verificationStatus'>) => VillageUmkm;
+  updateUmkm: (id: string, updated: Partial<VillageUmkm>) => void;
+  updateUmkmStatus: (id: string, status: VillageUmkm['status'], verificationStatus?: VerificationStatus, notes?: string) => void;
+  deleteUmkm: (id: string) => void;
+
   // Backup & Reset
   resetToDefaults: () => void;
   exportJSON: () => string;
@@ -384,6 +393,16 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   });
 
+  // UMKM Desa Brabo
+  const [umkmList, setUmkmList] = useState<VillageUmkm[]>(() => {
+    try {
+      const saved = localStorage.getItem(`${STORAGE_KEY}_umkm`);
+      return saved ? JSON.parse(saved) : INITIAL_UMKM_DATA;
+    } catch {
+      return INITIAL_UMKM_DATA;
+    }
+  });
+
   // Sync to LocalStorage
   useEffect(() => {
     try {
@@ -402,6 +421,7 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
       localStorage.setItem(`${STORAGE_KEY}_pkk`, JSON.stringify(pkkMembers));
       localStorage.setItem(`${STORAGE_KEY}_karang_taruna`, JSON.stringify(karangTarunaMembers));
       localStorage.setItem(`${STORAGE_KEY}_citizen_photos`, JSON.stringify(citizenPhotos));
+      localStorage.setItem(`${STORAGE_KEY}_umkm`, JSON.stringify(umkmList));
     } catch (e) {
       console.error('Failed saving to localStorage:', e);
     }
@@ -421,6 +441,7 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     pkkMembers,
     karangTarunaMembers,
     citizenPhotos,
+    umkmList,
   ]);
 
   // Officials handlers
@@ -746,6 +767,67 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     setCitizenPhotos(prev => prev.filter(p => p.id !== id));
   };
 
+  // UMKM Handlers (Pendaftaran Mandiri & Pengelolaan Usaha Warga)
+  const addUmkm = (umkmData: Omit<VillageUmkm, 'id' | 'submittedAt' | 'status' | 'verificationStatus'>): VillageUmkm => {
+    const dateStr = new Date().toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    const newUmkm: VillageUmkm = {
+      ...umkmData,
+      id: `umkm-${Date.now()}`,
+      status: 'APPROVED', // Warga langsung tayang atau siap verifikasi
+      verificationStatus: 'SUPPORTED',
+      submittedAt: `${dateStr} WIB`,
+    };
+
+    setUmkmList(prev => [newUmkm, ...prev]);
+    return newUmkm;
+  };
+
+  const updateUmkm = (id: string, updated: Partial<VillageUmkm>) => {
+    setUmkmList(prev =>
+      prev.map(u => (u.id === id ? { ...u, ...updated, updatedAt: new Date().toISOString() } : u))
+    );
+  };
+
+  const updateUmkmStatus = (
+    id: string,
+    status: VillageUmkm['status'],
+    verificationStatus: VerificationStatus = 'VERIFIED',
+    notes?: string
+  ) => {
+    const dateStr = new Date().toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    setUmkmList(prev =>
+      prev.map(u =>
+        u.id === id
+          ? {
+              ...u,
+              status,
+              verificationStatus,
+              notes: notes || u.notes,
+              verifiedAt: status === 'APPROVED' ? `${dateStr} WIB` : u.verifiedAt,
+            }
+          : u
+      )
+    );
+  };
+
+  const deleteUmkm = (id: string) => {
+    setUmkmList(prev => prev.filter(u => u.id !== id));
+  };
+
   // Reset & Backup
   const resetToDefaults = () => {
     setVillageHead(VILLAGE_HEAD);
@@ -763,6 +845,7 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     setPkkMembers([]);
     setKarangTarunaMembers([]);
     setCitizenPhotos([]);
+    setUmkmList(INITIAL_UMKM_DATA);
     localStorage.clear();
   };
 
@@ -783,6 +866,7 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
       pkkMembers,
       karangTarunaMembers,
       citizenPhotos,
+      umkmList,
       exportedAt: new Date().toISOString(),
     };
     return JSON.stringify(payload, null, 2);
@@ -806,6 +890,7 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
       if (parsed.pkkMembers && Array.isArray(parsed.pkkMembers)) setPkkMembers(parsed.pkkMembers);
       if (parsed.karangTarunaMembers && Array.isArray(parsed.karangTarunaMembers)) setKarangTarunaMembers(parsed.karangTarunaMembers);
       if (parsed.citizenPhotos && Array.isArray(parsed.citizenPhotos)) setCitizenPhotos(parsed.citizenPhotos);
+      if (parsed.umkmList && Array.isArray(parsed.umkmList)) setUmkmList(parsed.umkmList);
       return true;
     } catch (e) {
       console.error('Import error:', e);
@@ -870,6 +955,11 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
         addCitizenPhoto,
         updateCitizenPhotoStatus,
         deleteCitizenPhoto,
+        umkmList,
+        addUmkm,
+        updateUmkm,
+        updateUmkmStatus,
+        deleteUmkm,
         resetToDefaults,
         exportJSON,
         importJSON,

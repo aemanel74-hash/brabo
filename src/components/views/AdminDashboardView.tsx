@@ -8,6 +8,7 @@ import {
   OfficialPerson, 
   ActivityItem, 
   VerificationStatus,
+  VerificationSourceOption,
   Signatory,
   LetterTemplate,
   MapLocation,
@@ -64,8 +65,10 @@ import { DocumentTemplatesTab } from './admin/DocumentTemplatesTab';
 import { DocumentSubmissionsTab } from './admin/DocumentSubmissionsTab';
 import { HamletsTab } from './admin/HamletsTab';
 import { OrganizationsTab } from './admin/OrganizationsTab';
+import { UmkmAdminTab } from './admin/UmkmAdminTab';
 import { PhotoUploadInput } from '../common/PhotoUploadInput';
 import { VerificationSourceSelector } from '../common/VerificationSourceSelector';
+import { Store } from 'lucide-react';
 
 interface AdminDashboardViewProps {
   onOpenSource: (sourceId: string) => void;
@@ -75,6 +78,7 @@ type AdminTab =
   | 'pamong'
   | 'kewilayahan'
   | 'kelembagaan'
+  | 'umkm'
   | 'signatories'
   | 'complaints'
   | 'templates'
@@ -135,6 +139,11 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
     updateCitizenPhotoStatus,
     deleteCitizenPhoto,
     complaints,
+    umkmList,
+    addUmkm,
+    updateUmkm,
+    updateUmkmStatus,
+    deleteUmkm,
     resetToDefaults,
     exportJSON,
     importJSON
@@ -170,15 +179,109 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
   });
 
   const handleSaveHead = () => {
-    updateVillageHead(headForm);
+    const verSource = headForm.verificationSource || 'VERIFIED_DESA';
+    let verStatus: VerificationStatus = 'VERIFIED';
+    let srcId = 'SRC-PEMDES-BRABO';
+
+    if (verSource === 'VERIFIED_DESA') {
+      verStatus = 'VERIFIED';
+      srcId = 'SRC-PEMDES-BRABO';
+    } else if (verSource === 'BPS_GROBOGAN') {
+      verStatus = 'VERIFIED';
+      srcId = 'SRC-BPS-2022';
+    } else if (verSource === 'OTHER_VALID_SOURCE') {
+      verStatus = 'SUPPORTED';
+      srcId = 'SRC-OTHER-VALID';
+    } else {
+      verStatus = 'UNVERIFIED';
+      srcId = 'SRC-KKN-UNVERIFIED';
+    }
+
+    updateVillageHead({
+      ...headForm,
+      verificationSource: verSource,
+      status: verStatus,
+      sourceId: srcId,
+    });
     setEditingHead(false);
     showToast('Profil Kepala Desa & status verifikasi berhasil diperbarui.');
   };
 
   const handleSaveOfficial = (id: string) => {
-    updateOfficial(id, officialForm);
+    const verSource = officialForm.verificationSource || 'VERIFIED_DESA';
+    let verStatus: VerificationStatus = 'VERIFIED';
+    let srcId = 'SRC-PEMDES-BRABO';
+
+    if (verSource === 'VERIFIED_DESA') {
+      verStatus = 'VERIFIED';
+      srcId = 'SRC-PEMDES-BRABO';
+    } else if (verSource === 'BPS_GROBOGAN') {
+      verStatus = 'VERIFIED';
+      srcId = 'SRC-BPS-2022';
+    } else if (verSource === 'OTHER_VALID_SOURCE') {
+      verStatus = 'SUPPORTED';
+      srcId = 'SRC-OTHER-VALID';
+    } else {
+      verStatus = 'UNVERIFIED';
+      srcId = 'SRC-KKN-UNVERIFIED';
+    }
+
+    updateOfficial(id, {
+      ...officialForm,
+      verificationSource: verSource,
+      status: verStatus,
+      sourceId: srcId,
+      isConfirmedActive: verStatus === 'VERIFIED' ? true : (officialForm.isConfirmedActive ?? false),
+    });
     setEditingOfficialId(null);
     showToast('Data Pamong & status verifikasi berhasil disimpan.');
+  };
+
+  const handleQuickChangeOfficialStatus = (
+    id: string, 
+    verSource: VerificationSourceOption,
+    customName?: string,
+    note?: string
+  ) => {
+    let verStatus: VerificationStatus = 'VERIFIED';
+    let srcId = 'SRC-PEMDES-BRABO';
+
+    if (verSource === 'VERIFIED_DESA') {
+      verStatus = 'VERIFIED';
+      srcId = 'SRC-PEMDES-BRABO';
+    } else if (verSource === 'BPS_GROBOGAN') {
+      verStatus = 'VERIFIED';
+      srcId = 'SRC-BPS-2022';
+    } else if (verSource === 'OTHER_VALID_SOURCE') {
+      verStatus = 'SUPPORTED';
+      srcId = 'SRC-OTHER-VALID';
+    } else {
+      verStatus = 'UNVERIFIED';
+      srcId = 'SRC-KKN-UNVERIFIED';
+    }
+
+    updateOfficial(id, {
+      verificationSource: verSource,
+      status: verStatus,
+      sourceId: srcId,
+      verificationNote: note !== undefined ? note : (verSource === 'VERIFIED_DESA' ? 'SK Pengangkatan Pamong Desa Brabo' : ''),
+      customSourceName: customName !== undefined ? customName : (verSource === 'OTHER_VALID_SOURCE' ? 'Dokumen Terpercaya' : ''),
+      isConfirmedActive: verStatus === 'VERIFIED',
+    });
+    showToast('Status verifikasi pamong berhasil diperbarui.');
+  };
+
+  const handleVerifyAllOfficials = () => {
+    officials.forEach((official) => {
+      updateOfficial(official.id, {
+        status: 'VERIFIED',
+        verificationSource: 'VERIFIED_DESA',
+        sourceId: 'SRC-PEMDES-BRABO',
+        verificationNote: 'Telah Diverifikasi Resmi oleh Pemerintah Desa Brabo',
+        isConfirmedActive: true,
+      });
+    });
+    showToast('Semua struktur pamong desa berhasil diset sebagai "Terverifikasi Resmi (Data Desa)".');
   };
 
   const handleCreateOfficial = (e: React.FormEvent) => {
@@ -187,7 +290,34 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
       alert('Nama Pamong wajib diisi.');
       return;
     }
-    addOfficial(newOfficial as Omit<OfficialPerson, 'id'>);
+    const verSource = newOfficial.verificationSource || 'VERIFIED_DESA';
+    let verStatus: VerificationStatus = 'VERIFIED';
+    let srcId = 'SRC-PEMDES-BRABO';
+
+    if (verSource === 'VERIFIED_DESA') {
+      verStatus = 'VERIFIED';
+      srcId = 'SRC-PEMDES-BRABO';
+    } else if (verSource === 'BPS_GROBOGAN') {
+      verStatus = 'VERIFIED';
+      srcId = 'SRC-BPS-2022';
+    } else if (verSource === 'OTHER_VALID_SOURCE') {
+      verStatus = 'SUPPORTED';
+      srcId = 'SRC-OTHER-VALID';
+    } else {
+      verStatus = 'UNVERIFIED';
+      srcId = 'SRC-KKN-UNVERIFIED';
+    }
+
+    addOfficial({
+      ...newOfficial,
+      name: newOfficial.name.trim(),
+      role: newOfficial.role?.trim() || 'Perangkat Desa',
+      verificationSource: verSource,
+      status: verStatus,
+      sourceId: srcId,
+      isConfirmedActive: verStatus === 'VERIFIED',
+    } as Omit<OfficialPerson, 'id'>);
+
     setIsAddingOfficial(false);
     setNewOfficial({
       name: '',
@@ -502,6 +632,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
             { id: 'pamong', label: 'Pamong & SOTK', icon: Users },
             { id: 'kewilayahan', label: `Kewilayahan (${hamlets.length} Dusun)`, icon: Compass },
             { id: 'kelembagaan', label: `Kelembagaan (${pkkMembers.length + karangTarunaMembers.length})`, icon: HeartHandshake },
+            { id: 'umkm', label: `UMKM & Usaha Warga (${umkmList.length})`, icon: Store },
             { id: 'signatories', label: 'Penandatangan', icon: PenTool },
             { id: 'complaints', label: `Aduan Warga (${complaints.length})`, icon: MessageSquare },
             { id: 'templates', label: `Template Berkas (${letterTemplates.length})`, icon: Sliders },
@@ -671,23 +802,37 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
 
           {/* Perangkat & Pamong Desa List */}
           <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200 space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
               <div>
-                <h3 className="text-base font-bold text-slate-900">
-                  Daftar Pamong Desa & SOTK ({officials.length})
+                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <span>Daftar Pamong Desa & SOTK ({officials.length})</span>
+                  <span className="text-xs font-normal text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                    {officials.filter(o => o.status === 'VERIFIED').length} Terverifikasi
+                  </span>
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Sekretaris Desa, Kaur, Kasi, dan Kepala Dusun (Kadus) lengkap dengan status verifikasi
+                  Sekretaris Desa, Kaur, Kasi, dan Kepala Dusun (Kadus) lengkap dengan status verifikasi resmi
                 </p>
               </div>
 
-              <button
-                onClick={() => setIsAddingOfficial(!isAddingOfficial)}
-                className="px-3.5 py-2 rounded-xl bg-emerald-800 text-white text-xs font-bold flex items-center gap-1.5 hover:bg-emerald-700 transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Tambah Pamong Baru</span>
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleVerifyAllOfficials}
+                  className="px-3 py-2 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-300 text-xs font-bold flex items-center gap-1.5 hover:bg-emerald-100 transition-colors"
+                  title="Tandai seluruh pamong sebagai Terverifikasi Resmi oleh Pemdes"
+                >
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  <span>Verifikasi Semua (Data Desa)</span>
+                </button>
+                <button
+                  onClick={() => setIsAddingOfficial(!isAddingOfficial)}
+                  className="px-3.5 py-2 rounded-xl bg-emerald-800 text-white text-xs font-bold flex items-center gap-1.5 hover:bg-emerald-700 transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Tambah Pamong Baru</span>
+                </button>
+              </div>
             </div>
 
             {/* Add Official Form Modal/Inline */}
@@ -770,13 +915,18 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
             <div className="space-y-3">
               {officials.map((official) => {
                 const isEditing = editingOfficialId === official.id;
+                const currentSource = official.verificationSource || (official.status === 'VERIFIED' ? 'VERIFIED_DESA' : (official.status === 'SUPPORTED' ? 'OTHER_VALID_SOURCE' : 'UNVERIFIED'));
                 return (
                   <div
                     key={official.id}
-                    className="p-4 rounded-2xl border border-slate-200 hover:border-slate-300 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white"
+                    className={`p-4 rounded-2xl border transition-all flex flex-col md:flex-row md:items-center justify-between gap-3 ${
+                      official.status === 'VERIFIED'
+                        ? 'border-emerald-200 bg-white hover:border-emerald-300'
+                        : 'border-amber-200 bg-amber-50/20 hover:border-amber-300'
+                    }`}
                   >
                     {!isEditing ? (
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-3 min-w-0 flex-1">
                         {official.photoUrl ? (
                           <img src={official.photoUrl} alt="" className="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0" />
                         ) : (
@@ -789,7 +939,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
                             <p className="text-xs font-bold text-slate-900 truncate">{official.name}</p>
                             <VerificationBadge
                               status={official.status || 'VERIFIED'}
-                              verificationSource={official.verificationSource || 'VERIFIED_DESA'}
+                              verificationSource={currentSource}
                               verificationNote={official.verificationNote}
                               customSourceName={official.customSourceName}
                               sourceId={official.sourceId || 'SRC-PEMDES-BRABO'}
@@ -797,7 +947,28 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
                             />
                           </div>
                           <p className="text-[11px] text-emerald-800 font-semibold truncate">{official.role}</p>
-                          <p className="text-[10px] text-slate-500">{official.period || '2019 - Sekarang'}</p>
+                          <div className="flex flex-wrap items-center gap-3 text-[10px] text-slate-500">
+                            <span>Masa: {official.period || '2019 - Sekarang'}</span>
+                            {official.verificationNote && (
+                              <span className="text-emerald-700 font-medium">Doc: {official.verificationNote}</span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Fast Verification Status Switcher */}
+                        <div className="flex items-center gap-1.5 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                          <span className="text-[10px] text-slate-400 font-medium sm:hidden">Ubah Status:</span>
+                          <select
+                            aria-label={`Ubah status verifikasi ${official.name}`}
+                            value={currentSource}
+                            onChange={(e) => handleQuickChangeOfficialStatus(official.id, e.target.value as VerificationSourceOption)}
+                            className="text-[11px] font-semibold py-1 px-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-700 hover:bg-white focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+                          >
+                            <option value="VERIFIED_DESA">✓ Terverifikasi (Data Desa)</option>
+                            <option value="BPS_GROBOGAN">✓ Terverifikasi (Data BPS)</option>
+                            <option value="OTHER_VALID_SOURCE">✓ Sumber Valid Lainnya</option>
+                            <option value="UNVERIFIED">⚠ Butuh Verifikasi Desa</option>
+                          </select>
                         </div>
                       </div>
                     ) : (
@@ -848,7 +1019,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
                         {/* Verification Source Selector in Edit Form */}
                         <div className="pt-2 border-t border-slate-200">
                           <VerificationSourceSelector
-                            verificationSource={officialForm.verificationSource ?? official.verificationSource ?? 'VERIFIED_DESA'}
+                            verificationSource={officialForm.verificationSource ?? (official.verificationSource || (official.status === 'VERIFIED' ? 'VERIFIED_DESA' : 'VERIFIED_DESA'))}
                             verificationNote={officialForm.verificationNote ?? official.verificationNote ?? ''}
                             customSourceName={officialForm.customSourceName ?? official.customSourceName ?? ''}
                             onChange={(fields) => setOfficialForm({ ...officialForm, ...fields })}
@@ -857,16 +1028,22 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
                       </div>
                     )}
 
-                    <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                    <div className="flex items-center gap-2 self-end md:self-center shrink-0">
                       {!isEditing ? (
                         <>
                           <button
                             onClick={() => {
                               setEditingOfficialId(official.id);
-                              setOfficialForm(official);
+                              setOfficialForm({
+                                ...official,
+                                verificationSource: official.verificationSource || (official.status === 'VERIFIED' ? 'VERIFIED_DESA' : 'VERIFIED_DESA'),
+                                status: official.status === 'REQUIRES_VERIFICATION' ? 'VERIFIED' : (official.status || 'VERIFIED'),
+                                sourceId: official.sourceId || 'SRC-PEMDES-BRABO',
+                                verificationNote: official.verificationNote || 'SK Pengangkatan Perangkat Desa Brabo',
+                              });
                             }}
                             className="p-2 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors"
-                            title="Edit"
+                            title="Edit Data Pamong & Verifikasi"
                           >
                             <Edit className="w-4 h-4" />
                           </button>
@@ -921,6 +1098,32 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
       {/* ==================================================== */}
       {activeTab === 'kelembagaan' && (
         <OrganizationsTab onOpenSource={onOpenSource} showToast={showToast} />
+      )}
+
+      {/* ==================================================== */}
+      {/* TAB: UMKM & USAHA WARGA */}
+      {/* ==================================================== */}
+      {activeTab === 'umkm' && (
+        <UmkmAdminTab
+          umkmList={umkmList}
+          onAddUmkm={(data) => {
+            addUmkm(data);
+            showToast('UMKM baru berhasil didaftarkan dan tersimpan di database.');
+          }}
+          onUpdateUmkm={(id, data) => {
+            updateUmkm(id, data);
+            showToast('Informasi UMKM berhasil diperbarui.');
+          }}
+          onUpdateStatus={(id, status, verStatus, notes) => {
+            updateUmkmStatus(id, status, verStatus, notes);
+            showToast('Status UMKM berhasil diperbarui.');
+          }}
+          onDeleteUmkm={(id) => {
+            deleteUmkm(id);
+            showToast('Data UMKM berhasil dihapus dari database.');
+          }}
+          onOpenSource={onOpenSource}
+        />
       )}
 
       {/* ==================================================== */}

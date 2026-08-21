@@ -112,18 +112,44 @@ export const GovernmentView: React.FC<GovernmentViewProps> = ({ onOpenSource }) 
       {activeTab === 'pemerintah' && (
         <div className="space-y-10">
           {/* Verification Notice */}
-          <div className="bg-amber-50 rounded-2xl p-5 border border-amber-200/90 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-amber-900">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-              <div className="space-y-0.5">
-                <p className="font-bold text-amber-950">Status Verifikasi Pamong Desa Terkini:</p>
-                <p className="text-amber-800 leading-relaxed">
-                  Nama Kepala Desa (<strong>{villageHead.name}</strong>) terverifikasi resmi berdasarkan SK Pelantikan Pemkab Grobogan 18 Desember 2019. Seluruh struktur pamong desa tersinkronisasi penuh dengan Pusat Kendali Admin CMS.
-                </p>
+          {officials.filter(o => o.status === 'VERIFIED').length === officials.length ? (
+            <div className="bg-emerald-50 rounded-2xl p-5 border border-emerald-200 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-emerald-950">
+              <div className="flex items-start gap-3">
+                <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <p className="font-bold text-emerald-950">Status Verifikasi Pamong Desa Terkini:</p>
+                  <p className="text-emerald-800 leading-relaxed">
+                    Kepala Desa (<strong>{villageHead.name}</strong>) beserta seluruh {officials.length} Perangkat & Pamong Desa Brabo telah <strong>terverifikasi resmi</strong> berdasarkan arsip SOTK Pemerintah Desa / Data BPS dan tersinkronisasi secara real-time dari Admin CMS.
+                  </p>
+                </div>
               </div>
+              <VerificationBadge 
+                status="VERIFIED" 
+                verificationSource="VERIFIED_DESA"
+                verificationNote="SOTK Resmi Pemerintah Desa Brabo"
+                sourceId={villageHead.sourceId || 'SRC-PELANTIKAN-KADES'} 
+                onOpenSource={onOpenSource} 
+              />
             </div>
-            <VerificationBadge status="VERIFIED" sourceId="SRC-PELANTIKAN-KADES" onOpenSource={onOpenSource} />
-          </div>
+          ) : (
+            <div className="bg-amber-50 rounded-2xl p-5 border border-amber-200/90 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-amber-900">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <p className="font-bold text-amber-950">Status Verifikasi Pamong Desa Terkini:</p>
+                  <p className="text-amber-800 leading-relaxed">
+                    Kepala Desa (<strong>{villageHead.name}</strong>) terverifikasi resmi. Sebanyak {officials.filter(o => o.status === 'VERIFIED').length} dari {officials.length} perangkat desa telah terverifikasi. Pengelola dapat memperbarui status verifikasi secara langsung di Admin CMS.
+                  </p>
+                </div>
+              </div>
+              <VerificationBadge 
+                status="VERIFIED" 
+                verificationSource="VERIFIED_DESA"
+                sourceId={villageHead.sourceId || 'SRC-PELANTIKAN-KADES'} 
+                onOpenSource={onOpenSource} 
+              />
+            </div>
+          )}
 
           {/* Head of Village Featured Profile */}
           <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200 space-y-6">

@@ -3,6 +3,8 @@ import { VILLAGE_PROFILE } from '../../data/research/villageProfile';
 import { HISTORY_EVENTS } from '../../data/research/history';
 import { DEMOGRAPHIC_STATS, POPULATION_AGE_DISTRIBUTION, LIVELIHOOD_DISTRIBUTION } from '../../data/research/demographics';
 import { VerificationBadge } from '../common/VerificationBadge';
+import { useVillageData } from '../../context/VillageDataContext';
+import { UmkmShowcaseSection } from '../profile/UmkmShowcaseSection';
 import { 
   Building2, 
   History, 
@@ -16,18 +18,21 @@ import {
   Layers, 
   ShieldCheck, 
   AlertCircle,
-  TrendingUp
+  TrendingUp,
+  Store
 } from 'lucide-react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 interface ProfileViewProps {
   onOpenSource: (sourceId: string) => void;
+  defaultSection?: 'sejarah' | 'visi' | 'geografis' | 'demografi' | 'umkm';
 }
 
 const COLORS = ['#10b981', '#06b6d4', '#f59e0b', '#8b5cf6', '#ec4899'];
 
-export const ProfileView: React.FC<ProfileViewProps> = ({ onOpenSource }) => {
-  const [activeSection, setActiveSection] = useState<'sejarah' | 'visi' | 'geografis' | 'demografi'>('sejarah');
+export const ProfileView: React.FC<ProfileViewProps> = ({ onOpenSource, defaultSection = 'sejarah' }) => {
+  const [activeSection, setActiveSection] = useState<'sejarah' | 'visi' | 'geografis' | 'demografi' | 'umkm'>(defaultSection);
+  const { umkmList, addUmkm } = useVillageData();
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 space-y-10">
@@ -94,6 +99,17 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onOpenSource }) => {
           >
             <Users className="w-4 h-4" />
             <span>Demografi Penduduk</span>
+          </button>
+          <button
+            onClick={() => setActiveSection('umkm')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+              activeSection === 'umkm'
+                ? 'bg-white text-emerald-950 shadow-md'
+                : 'bg-emerald-950/60 text-emerald-200 hover:bg-emerald-800/80'
+            }`}
+          >
+            <Store className="w-4 h-4 text-amber-400" />
+            <span>UMKM & Niaga Desa ({umkmList.length})</span>
           </button>
         </div>
       </div>
@@ -403,6 +419,15 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onOpenSource }) => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* SECTION 5: DIREKTORI UMKM DESA BRABO */}
+      {activeSection === 'umkm' && (
+        <UmkmShowcaseSection
+          umkmList={umkmList}
+          onAddUmkm={addUmkm}
+          onOpenSource={onOpenSource}
+        />
       )}
     </div>
   );

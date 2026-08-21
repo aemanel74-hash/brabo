@@ -384,3 +384,5 @@ export interface CitizenActivityPhoto {
   fileSizeKb?: number;
   status: 'APPROVED' | 'PENDING';
 }
+
+export * from './umkm';
