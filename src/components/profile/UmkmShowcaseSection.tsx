@@ -22,6 +22,7 @@ import {
 import { VillageUmkm } from '../../types';
 import { VerificationBadge } from '../common/VerificationBadge';
 import { RegisterUmkmModal } from './RegisterUmkmModal';
+import { SmartImage } from '../common/SmartImage';
 
 interface UmkmShowcaseSectionProps {
   umkmList: VillageUmkm[];
@@ -207,10 +208,13 @@ export const UmkmShowcaseSection: React.FC<UmkmShowcaseSectionProps> = ({
               >
                 {/* Photo Carousel Slider (Minimal 4 Slide) */}
                 <div className="relative aspect-4/3 bg-slate-900 overflow-hidden select-none">
-                  <img
+                  <SmartImage
                     src={currentPhoto}
                     alt={`${umkm.name} - slide ${currentPhotoIdx + 1}`}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    width={480}
+                    height={360}
+                    showHdBadge={true}
                   />
                   
                   {/* Category Pill Tag */}
@@ -391,10 +395,12 @@ export const UmkmShowcaseSection: React.FC<UmkmShowcaseSectionProps> = ({
                       rel="noreferrer"
                       className="group relative rounded-xl overflow-hidden aspect-4/3 bg-slate-100 border border-slate-200 shadow-2xs block"
                     >
-                      <img
+                      <SmartImage
                         src={photo}
                         alt={`Dokumentasi ${pIdx + 1}`}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform"
+                        width={200}
+                        height={150}
                       />
                       <span className="absolute bottom-1 left-1 bg-slate-950/70 text-white text-[9px] px-1.5 py-0.5 rounded font-mono">
                         #{pIdx + 1}

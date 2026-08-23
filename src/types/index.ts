@@ -386,3 +386,5 @@ export interface CitizenActivityPhoto {
 }
 
 export * from './umkm';
+export * from './demographics';
+export * from './auth';

@@ -1,13 +1,18 @@
 import React from 'react';
-import { Landmark, MapPin, Mail, Phone, ExternalLink, ShieldCheck, Heart, ArrowUp } from 'lucide-react';
+import { Landmark, MapPin, Mail, Phone, ExternalLink, ShieldCheck, Heart, ArrowUp, Zap } from 'lucide-react';
 import { NavTab } from './Navbar';
+import { useLiteMode } from '../../context/LiteModeContext';
+import { formatBytes } from '../../utils/imageOptimizer';
 
 interface FooterProps {
   onSelectTab: (tab: NavTab) => void;
   onOpenSourceModal: (sourceId: string) => void;
+  onOpenLiteModeModal?: () => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({ onSelectTab, onOpenSourceModal }) => {
+export const Footer: React.FC<FooterProps> = ({ onSelectTab, onOpenSourceModal, onOpenLiteModeModal }) => {
+  const { isLiteMode, estimatedDataSavedBytes } = useLiteMode();
+
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -28,7 +33,26 @@ export const Footer: React.FC<FooterProps> = ({ onSelectTab, onOpenSourceModal }
               Dikembangkan melalui program kolaborasi pengabdian masyarakat oleh <strong className="text-emerald-300 font-bold">Tim KKN-PM 02 Universitas Muhammadiyah Semarang (UNIMUS)</strong> bersama Pemerintah Desa Brabo.
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-center md:justify-end gap-2.5">
+            {/* Mode Hemat Kuota in Footer */}
+            <button
+              onClick={onOpenLiteModeModal}
+              className={`px-3.5 py-2.5 rounded-xl text-xs font-semibold border transition-all flex items-center gap-1.5 ${
+                isLiteMode
+                  ? 'bg-amber-950/90 text-amber-300 border-amber-500/60 hover:bg-amber-900/90 shadow-sm'
+                  : 'bg-slate-800/90 text-slate-300 border-slate-700 hover:bg-slate-700'
+              }`}
+              title="Pengaturan Mode Hemat Kuota (Lite Mode)"
+            >
+              <Zap className={`w-3.5 h-3.5 ${isLiteMode ? 'fill-amber-400 text-amber-400' : 'text-slate-400'}`} />
+              <span>{isLiteMode ? 'Hemat Kuota Aktif' : 'Mode Hemat Kuota'}</span>
+              {isLiteMode && (
+                <span className="text-[10px] text-emerald-300 font-mono">
+                  ({formatBytes(estimatedDataSavedBytes)})
+                </span>
+              )}
+            </button>
+
             <button
               onClick={() => onSelectTab('riset')}
               className="px-4 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold border border-emerald-600/40 shadow-sm transition-colors flex items-center gap-2"

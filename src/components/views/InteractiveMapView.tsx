@@ -23,6 +23,7 @@ import {
   Check
 } from 'lucide-react';
 import { MapLocation, MapLocationCategory } from '../../types';
+import { SmartImage } from '../common/SmartImage';
 
 interface InteractiveMapViewProps {
   onOpenSource: (sourceId: string) => void;
@@ -275,10 +276,12 @@ export const InteractiveMapView: React.FC<InteractiveMapViewProps> = ({ onOpenSo
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 space-y-4">
               {activeLocation.photoUrl && (
                 <div className="w-full h-40 rounded-2xl overflow-hidden relative group">
-                  <img
+                  <SmartImage
                     src={activeLocation.photoUrl}
                     alt={activeLocation.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    width={400}
+                    height={200}
                   />
                   <div className="absolute top-2 right-2">
                     <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-900/80 backdrop-blur-md text-white">

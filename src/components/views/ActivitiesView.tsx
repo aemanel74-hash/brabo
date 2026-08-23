@@ -29,6 +29,7 @@ import {
 import { ActivityItem, CitizenActivityPhoto } from '../../types';
 import { compressImage, formatBytes, CompressionResult } from '../../utils/imageCompression';
 import { isSupabaseConfigured, uploadBase64ToSupabaseStorage, SUPABASE_BUCKETS } from '../../lib/supabase';
+import { SmartImage } from '../common/SmartImage';
 
 interface ActivitiesViewProps {
   onOpenSource: (sourceId: string) => void;
@@ -360,12 +361,15 @@ export const ActivitiesView: React.FC<ActivitiesViewProps> = ({ onOpenSource }) 
                         onClick={() => openLightbox(activity.title, allPhotos, 0)}
                         className="w-full h-48 rounded-2xl overflow-hidden relative cursor-pointer group"
                       >
-                        <img
+                        <SmartImage
                           src={allPhotos[0]}
                           alt={activity.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          width={480}
+                          height={280}
+                          showHdBadge={true}
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3 pointer-events-none">
                           <span className="text-white text-xs font-bold flex items-center gap-1.5">
                             <ImageIcon className="w-3.5 h-3.5" />
                             Lihat Galeri ({allPhotos.length} Foto)
@@ -382,7 +386,7 @@ export const ActivitiesView: React.FC<ActivitiesViewProps> = ({ onOpenSource }) 
                               onClick={() => openLightbox(activity.title, allPhotos, idx)}
                               className="w-14 h-14 rounded-xl overflow-hidden border border-slate-200 shrink-0 hover:opacity-80 transition-opacity"
                             >
-                              <img src={photoUrl} alt="" className="w-full h-full object-cover" />
+                              <SmartImage src={photoUrl} alt="" className="w-full h-full object-cover" width={100} height={100} />
                             </button>
                           ))}
                           {allPhotos.length > 4 && (
@@ -502,12 +506,15 @@ export const ActivitiesView: React.FC<ActivitiesViewProps> = ({ onOpenSource }) 
                       })}
                       className="w-full h-52 overflow-hidden relative cursor-pointer group bg-slate-100"
                     >
-                      <img
+                      <SmartImage
                         src={photo.photoUrl}
                         alt={photo.activityTitle}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        width={480}
+                        height={300}
+                        showHdBadge={true}
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3 pointer-events-none">
                         <span className="text-white text-xs font-bold flex items-center gap-1.5">
                           <ImageIcon className="w-3.5 h-3.5" />
                           Perbesar Foto
@@ -864,7 +871,7 @@ export const ActivitiesView: React.FC<ActivitiesViewProps> = ({ onOpenSource }) 
                       idx === activeGallery.currentIndex ? 'border-emerald-500 scale-105' : 'border-transparent opacity-60'
                     }`}
                   >
-                    <img src={imgUrl} alt="" className="w-full h-full object-cover" />
+                    <SmartImage src={imgUrl} alt="" className="w-full h-full object-cover" width={100} height={100} />
                   </button>
                 ))}
               </div>

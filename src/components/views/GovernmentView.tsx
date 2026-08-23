@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useVillageData } from '../../context/VillageDataContext';
 import { VerificationBadge } from '../common/VerificationBadge';
+import { SmartImage } from '../common/SmartImage';
 import { 
   Users, 
   Award, 
@@ -172,7 +173,7 @@ export const GovernmentView: React.FC<GovernmentViewProps> = ({ onOpenSource }) 
             <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
               {villageHead.photoUrl ? (
                 <div className="w-32 h-32 rounded-2xl overflow-hidden shadow-lg border-4 border-emerald-100 shrink-0">
-                  <img src={villageHead.photoUrl} alt={villageHead.name} className="w-full h-full object-cover" />
+                  <SmartImage src={villageHead.photoUrl} alt={villageHead.name} className="w-full h-full object-cover" width={180} height={180} />
                 </div>
               ) : (
                 <div className="w-32 h-32 rounded-2xl bg-gradient-to-br from-emerald-700 to-teal-800 flex flex-col items-center justify-center text-white shadow-lg shadow-emerald-900/10 shrink-0 border-4 border-emerald-100">
@@ -410,7 +411,7 @@ export const GovernmentView: React.FC<GovernmentViewProps> = ({ onOpenSource }) 
               {officials.map((official) => (
                 <div key={official.id} className="p-4 rounded-2xl bg-slate-50 hover:bg-slate-100/80 border border-slate-200 transition-colors flex items-center gap-3">
                   {official.photoUrl ? (
-                    <img src={official.photoUrl} alt={official.name} className="w-12 h-12 rounded-xl object-cover shrink-0 border border-slate-300" />
+                    <SmartImage src={official.photoUrl} alt={official.name} className="w-12 h-12 rounded-xl object-cover shrink-0 border border-slate-300" width={80} height={80} />
                   ) : (
                     <div className="w-12 h-12 rounded-xl bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs shrink-0">
                       <User className="w-5 h-5 text-slate-500" />
@@ -500,7 +501,7 @@ export const GovernmentView: React.FC<GovernmentViewProps> = ({ onOpenSource }) 
                 {pkkMembers.map((member) => (
                   <div key={member.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center gap-3">
                     {member.photoUrl ? (
-                      <img src={member.photoUrl} alt={member.name} className="w-12 h-12 rounded-xl object-cover shrink-0 border border-slate-300" />
+                      <SmartImage src={member.photoUrl} alt={member.name} className="w-12 h-12 rounded-xl object-cover shrink-0 border border-slate-300" width={80} height={80} />
                     ) : (
                       <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs shrink-0">
                         <User className="w-5 h-5 text-emerald-700" />
@@ -591,7 +592,7 @@ export const GovernmentView: React.FC<GovernmentViewProps> = ({ onOpenSource }) 
                 {karangTarunaMembers.map((member) => (
                   <div key={member.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center gap-3">
                     {member.photoUrl ? (
-                      <img src={member.photoUrl} alt={member.name} className="w-12 h-12 rounded-xl object-cover shrink-0 border border-slate-300" />
+                      <SmartImage src={member.photoUrl} alt={member.name} className="w-12 h-12 rounded-xl object-cover shrink-0 border border-slate-300" width={80} height={80} />
                     ) : (
                       <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs shrink-0">
                         <User className="w-5 h-5 text-emerald-700" />

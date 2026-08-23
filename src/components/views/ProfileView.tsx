@@ -5,6 +5,7 @@ import { DEMOGRAPHIC_STATS, POPULATION_AGE_DISTRIBUTION, LIVELIHOOD_DISTRIBUTION
 import { VerificationBadge } from '../common/VerificationBadge';
 import { useVillageData } from '../../context/VillageDataContext';
 import { UmkmShowcaseSection } from '../profile/UmkmShowcaseSection';
+import { RealtimeDemographicsSection } from '../profile/RealtimeDemographicsSection';
 import { 
   Building2, 
   History, 
@@ -330,95 +331,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onOpenSource, defaultS
 
       {/* SECTION 4: DEMOGRAFI & CHARTS */}
       {activeSection === 'demografi' && (
-        <div className="space-y-8 animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200 space-y-8">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
-              <div>
-                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2">
-                  <Users className="w-6 h-6 text-emerald-600" />
-                  Statistik & Visualisasi Demografi Penduduk
-                </h2>
-                <p className="text-xs sm:text-sm text-slate-600 mt-1">
-                  Berdasarkan Data BPS Grobogan & Pemkab Grobogan (Total 5.244 Jiwa).
-                </p>
-              </div>
-              <VerificationBadge status="VERIFIED" sourceId="SRC-BPS-2022" onOpenSource={onOpenSource} showSourceTitle={true} />
-            </div>
-
-            {/* Demographics Grid of Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {DEMOGRAPHIC_STATS.slice(0, 4).map((stat, sIdx) => (
-                <div key={sIdx} className="p-4 rounded-xl bg-slate-50 border border-slate-200/70 space-y-1">
-                  <p className="text-xs text-slate-500 font-semibold">{stat.label}</p>
-                  <p className="text-xl sm:text-2xl font-extrabold text-slate-900">{stat.value}</p>
-                  <p className="text-[11px] text-slate-500">{stat.unit}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* Recharts Visualizations */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-4">
-              {/* Livelihood Chart */}
-              <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-4">
-                <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-emerald-600" />
-                  Estimasi Komposisi Mata Pencaharian (%)
-                </h3>
-
-                <div className="h-64 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={LIVELIHOOD_DISTRIBUTION} layout="vertical" margin={{ left: 10, right: 20, top: 10, bottom: 10 }}>
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
-                      <XAxis type="number" unit="%" />
-                      <YAxis type="category" dataKey="sector" width={110} tick={{ fontSize: 10 }} />
-                      <Tooltip formatter={(value: number) => [`${value}%`, 'Proporsi']} />
-                      <Bar dataKey="percentage" fill="#10b981" radius={[0, 6, 6, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              {/* Age Distribution Chart */}
-              <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-4">
-                <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                  <Users className="w-4 h-4 text-teal-600" />
-                  Struktur Usia Penduduk Desa
-                </h3>
-
-                <div className="h-64 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={POPULATION_AGE_DISTRIBUTION}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={90}
-                        paddingAngle={4}
-                        dataKey="count"
-                        nameKey="group"
-                      >
-                        {POPULATION_AGE_DISTRIBUTION.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(value: number) => [`${value} Jiwa`, 'Estimasi']} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 text-[11px]">
-                  {POPULATION_AGE_DISTRIBUTION.map((entry, index) => (
-                    <div key={index} className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
-                      <span className="text-slate-600 truncate">{entry.group}: <strong>{entry.count}</strong></span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <RealtimeDemographicsSection onOpenSource={onOpenSource} />
       )}
 
       {/* SECTION 5: DIREKTORI UMKM DESA BRABO */}

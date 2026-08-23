@@ -66,16 +66,24 @@ import { DocumentSubmissionsTab } from './admin/DocumentSubmissionsTab';
 import { HamletsTab } from './admin/HamletsTab';
 import { OrganizationsTab } from './admin/OrganizationsTab';
 import { UmkmAdminTab } from './admin/UmkmAdminTab';
+import { DemographicsSyncTab } from './admin/DemographicsSyncTab';
+import { Security2FaTab } from './admin/Security2FaTab';
+import { AdminLoginScreen } from '../auth/AdminLoginScreen';
+import { useAdminAuth } from '../../context/AdminAuthContext';
 import { PhotoUploadInput } from '../common/PhotoUploadInput';
 import { VerificationSourceSelector } from '../common/VerificationSourceSelector';
-import { Store } from 'lucide-react';
+import { SmartImage } from '../common/SmartImage';
+import { Store, LogOut, KeyRound, Monitor, ArrowLeft, Globe } from 'lucide-react';
 
 interface AdminDashboardViewProps {
   onOpenSource: (sourceId: string) => void;
+  onExit?: () => void;
 }
 
 type AdminTab = 
   | 'pamong'
+  | 'demografi'
+  | 'keamanan'
   | 'kewilayahan'
   | 'kelembagaan'
   | 'umkm'
@@ -91,7 +99,7 @@ type AdminTab =
   | 'supabase'
   | 'backup';
 
-export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSource }) => {
+export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSource, onExit }) => {
   const { 
     villageHead, 
     officials, 
@@ -149,8 +157,18 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
     importJSON
   } = useVillageData();
 
+  const { 
+    currentAdmin, 
+    isAuthenticated, 
+    isPublicComputer, 
+    lockScreen, 
+    logout 
+  } = useAdminAuth();
+
   const [activeTab, setActiveTab] = useState<AdminTab>('pamong');
   const [successToast, setSuccessToast] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState<'ALL' | 'governance' | 'services' | 'data' | 'system'>('ALL');
+  const [previewPhotoModal, setPreviewPhotoModal] = useState<{ url: string; title: string; subtitle?: string } | null>(null);
 
   const showToast = (msg: string) => {
     setSuccessToast(msg);
@@ -596,8 +614,73 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
     }
   };
 
+  // If not authenticated, show the secure 2-Step Login Screen (after all hooks are called)
+  if (!isAuthenticated) {
+    return <AdminLoginScreen onOpenSource={onOpenSource} onCancel={onExit} />;
+  }
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 space-y-8">
+    <div className="min-h-screen bg-slate-900/95 text-slate-100 pb-16">
+      {/* Sleek Dedicated CMS Top Navigation Bar */}
+      <div className="sticky top-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-slate-800 shadow-md">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            {onExit && (
+              <button
+                type="button"
+                onClick={onExit}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/80 text-xs font-semibold transition-all group"
+                title="Kembali ke Halaman Web Publik Desa Brabo"
+              >
+                <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
+                <span className="hidden sm:inline">Portal Publik</span>
+                <span className="sm:hidden">Portal</span>
+              </button>
+            )}
+
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="font-bold text-xs sm:text-sm text-white tracking-tight">
+                CMS Desa Brabo
+              </span>
+              <span className="hidden md:inline text-[11px] text-emerald-400 font-mono px-2 py-0.5 rounded-md bg-emerald-950 border border-emerald-800/80">
+                v2.6 Secure
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {isPublicComputer && (
+              <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold text-amber-300 px-2 py-1 rounded-lg bg-amber-950/80 border border-amber-800/80">
+                <Monitor className="w-3 h-3" />
+                Mode Balai Desa
+              </span>
+            )}
+
+            <button
+              type="button"
+              onClick={lockScreen}
+              className="p-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-amber-300 border border-slate-700/80 text-xs flex items-center gap-1.5 transition-colors"
+              title="Kunci Layar (PIN)"
+            >
+              <Lock className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline font-semibold">Kunci</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={logout}
+              className="p-2 rounded-lg bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-800/80 text-xs flex items-center gap-1.5 transition-colors font-semibold"
+              title="Keluar Sesi Aman"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Logout</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8">
       {/* Toast Notification */}
       {successToast && (
         <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl border border-emerald-500 flex items-center gap-3 animate-in slide-in-from-bottom-4 duration-200">
@@ -607,61 +690,164 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
       )}
 
       {/* Top Admin Banner */}
-      <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-emerald-950 text-white rounded-3xl p-8 sm:p-10 shadow-xl border border-slate-800 relative overflow-hidden">
-        <div className="max-w-3xl space-y-3 relative z-10">
-          <div className="flex items-center gap-2">
-            <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-800 text-emerald-200 border border-emerald-700 flex items-center gap-1.5">
-              <Lock className="w-3.5 h-3.5" />
-              Pusat Kendali CMS Desa
-            </span>
-            <VerificationBadge status="VERIFIED" sourceId="SRC-PEMKAB-GROB" onOpenSource={onOpenSource} />
+      <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 text-white rounded-2xl sm:rounded-3xl p-5 sm:p-7 md:p-8 shadow-xl border border-slate-800 relative overflow-hidden">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+          <div className="max-w-2xl space-y-2.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-800/90 text-emerald-200 border border-emerald-700/80 flex items-center gap-1.5 shadow-xs">
+                <Lock className="w-3.5 h-3.5" />
+                Pusat Kendali CMS Desa
+              </span>
+              <VerificationBadge status="VERIFIED" sourceId="SRC-PEMKAB-GROB" onOpenSource={onOpenSource} />
+              {isPublicComputer && (
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-500/20 text-amber-300 border border-amber-400/30 flex items-center gap-1">
+                  <Monitor className="w-3 h-3 text-amber-400" />
+                  Mode Balai Desa (Komputer Umum)
+                </span>
+              )}
+            </div>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-white">
+              Admin Panel Desa Brabo Digital
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+              Kelola struktur pamong, kewilayahan 3 dusun, sinkronisasi data demografi real-time BPS 2026, status verifikasi data transparan, pejabat penandatangan, template surat mandiri, warta berita, dan proteksi otentikasi 2FA.
+            </p>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
-            Admin Panel Desa Brabo Digital
-          </h1>
-          <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
-            Kelola struktur pamong, kewilayahan 3 dusun, status verifikasi data transparan, pejabat penandatangan, template surat mandiri, antrean permohonan warga, warta berita, dan dokumentasi kegiatan.
-          </p>
+
+          {/* Current Logged In Admin Profile Card & Actions */}
+          {currentAdmin && (
+            <div className="p-4 rounded-2xl bg-slate-900/95 border border-slate-700/80 backdrop-blur-md space-y-3 shrink-0 lg:max-w-sm w-full lg:w-auto shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-emerald-500/80 bg-slate-800 shadow-xs flex items-center justify-center">
+                  {currentAdmin.avatarUrl ? (
+                    <img
+                      src={currentAdmin.avatarUrl}
+                      alt={currentAdmin.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-emerald-900 text-emerald-300 flex items-center justify-center font-bold text-base">
+                      {currentAdmin.name?.charAt(0) || 'A'}
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-xs font-bold text-white truncate">{currentAdmin.name}</span>
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                      {currentAdmin.roleLabel}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[10px] text-slate-400 mt-0.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span className="truncate">Otoritas 2FA: <strong className="text-emerald-300">Aktif</strong></span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-1.5 pt-2 border-t border-slate-800/80 text-[11px]">
+                <button
+                  type="button"
+                  onClick={lockScreen}
+                  className="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 font-semibold flex items-center justify-center gap-1 transition-colors"
+                  title="Kunci Layar (PIN)"
+                >
+                  <Lock className="w-3 h-3 shrink-0" />
+                  <span>Kunci</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('keamanan')}
+                  className="px-2 py-1.5 rounded-lg bg-emerald-950 hover:bg-emerald-900 text-emerald-200 font-semibold border border-emerald-800/80 flex items-center justify-center gap-1 transition-colors"
+                  title="Pengaturan Keamanan & Kode Master"
+                >
+                  <KeyRound className="w-3 h-3 shrink-0" />
+                  <span className="truncate">Kode Master</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="px-2 py-1.5 rounded-lg bg-rose-950 hover:bg-rose-900 text-rose-300 font-semibold border border-rose-800/80 flex items-center justify-center gap-1 transition-colors"
+                  title="Keluar Sesi Aman"
+                >
+                  <LogOut className="w-3 h-3 shrink-0" />
+                  <span>Logout</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Responsive Horizontal Admin Navigation Tabs */}
-      <div className="bg-white rounded-2xl p-2 shadow-sm border border-slate-200 overflow-x-auto">
-        <div className="flex gap-1.5 min-w-max">
+      {/* Categorized & Responsive Admin Navigation Bar */}
+      <div className="bg-white rounded-2xl p-2.5 sm:p-3 shadow-sm border border-slate-200 space-y-2">
+        {/* Category Pills Filter */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs border-b border-slate-100 min-w-max sm:min-w-0">
           {[
-            { id: 'pamong', label: 'Pamong & SOTK', icon: Users },
-            { id: 'kewilayahan', label: `Kewilayahan (${hamlets.length} Dusun)`, icon: Compass },
-            { id: 'kelembagaan', label: `Kelembagaan (${pkkMembers.length + karangTarunaMembers.length})`, icon: HeartHandshake },
-            { id: 'umkm', label: `UMKM & Usaha Warga (${umkmList.length})`, icon: Store },
-            { id: 'signatories', label: 'Penandatangan', icon: PenTool },
-            { id: 'complaints', label: `Aduan Warga (${complaints.length})`, icon: MessageSquare },
-            { id: 'templates', label: `Template Berkas (${letterTemplates.length})`, icon: Sliders },
-            { id: 'letters', label: `Antrean Berkas (${submissions.length})`, icon: FileText },
-            { id: 'map', label: `Peta & Lokasi (${mapLocations.length})`, icon: MapPin },
-            { id: 'news', label: `Berita & Warta (${news.length})`, icon: Newspaper },
-            { id: 'activities', label: `Kegiatan (${activities.length})`, icon: Activity },
-            { id: 'citizen_photos', label: `Foto Warga (${citizenPhotos.length})`, icon: Camera },
-            { id: 'media', label: `Media Library (${mediaList.length})`, icon: ImageIcon },
-            { id: 'supabase', label: 'Koneksi Supabase', icon: Cloud },
-            { id: 'backup', label: 'Cadangan & Audit', icon: Database },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as AdminTab)}
-                className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                  isActive
-                    ? 'bg-emerald-800 text-white shadow-xs'
-                    : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
+            { id: 'ALL', label: 'Semua Menu' },
+            { id: 'governance', label: '🏛️ Tata Kelola & Wilayah' },
+            { id: 'services', label: '📋 Layanan Warga' },
+            { id: 'data', label: '📊 Data & Informasi' },
+            { id: 'system', label: '🔒 Sistem & Keamanan' },
+          ].map((cat) => (
+            <button
+              key={cat.id}
+              type="button"
+              onClick={() => setActiveCategory(cat.id as any)}
+              className={`px-3 py-1 rounded-lg font-semibold text-xs transition-colors ${
+                activeCategory === cat.id
+                  ? 'bg-slate-900 text-white'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab Buttons Scrollable Pill Strip */}
+        <div className="flex gap-1.5 overflow-x-auto py-1 min-w-max">
+          {[
+            { id: 'pamong', label: 'Pamong & SOTK', icon: Users, category: 'governance' },
+            { id: 'kewilayahan', label: `Kewilayahan (${hamlets.length} Dusun)`, icon: Compass, category: 'governance' },
+            { id: 'kelembagaan', label: `Kelembagaan (${pkkMembers.length + karangTarunaMembers.length})`, icon: HeartHandshake, category: 'governance' },
+            { id: 'signatories', label: 'Penandatangan', icon: PenTool, category: 'governance' },
+            { id: 'letters', label: `Antrean Berkas (${submissions.length})`, icon: FileText, category: 'services' },
+            { id: 'complaints', label: `Aduan Warga (${complaints.length})`, icon: MessageSquare, category: 'services' },
+            { id: 'umkm', label: `UMKM Desa (${umkmList.length})`, icon: Store, category: 'services' },
+            { id: 'templates', label: `Template Berkas (${letterTemplates.length})`, icon: Sliders, category: 'services' },
+            { id: 'demografi', label: 'Demografi & BPS', icon: Database, category: 'data' },
+            { id: 'map', label: `Peta & GPS (${mapLocations.length})`, icon: MapPin, category: 'data' },
+            { id: 'news', label: `Warta Berita (${news.length})`, icon: Newspaper, category: 'data' },
+            { id: 'activities', label: `Kegiatan (${activities.length})`, icon: Activity, category: 'data' },
+            { id: 'citizen_photos', label: `Foto Warga (${citizenPhotos.length})`, icon: Camera, category: 'data' },
+            { id: 'media', label: `Pustaka Media (${mediaList.length})`, icon: ImageIcon, category: 'data' },
+            { id: 'supabase', label: 'Koneksi Supabase', icon: Cloud, category: 'system' },
+            { id: 'keamanan', label: 'Keamanan & 2FA', icon: ShieldCheck, category: 'system' },
+            { id: 'backup', label: 'Cadangan & Audit', icon: Database, category: 'system' },
+          ]
+            .filter((tab) => activeCategory === 'ALL' || tab.category === activeCategory)
+            .map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id as AdminTab)}
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                    isActive
+                      ? 'bg-emerald-800 text-white shadow-xs'
+                      : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 bg-slate-50/70 border border-slate-200/60'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5 shrink-0" />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
         </div>
       </div>
 
@@ -1084,6 +1270,20 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
             </div>
           </div>
         </div>
+      )}
+
+      {/* ==================================================== */}
+      {/* TAB DEMOGRAFI: BUKU INDUK PENDUDUK & BPS 2026 */}
+      {/* ==================================================== */}
+      {activeTab === 'demografi' && (
+        <DemographicsSyncTab onOpenSource={onOpenSource} showToast={showToast} />
+      )}
+
+      {/* ==================================================== */}
+      {/* TAB KEAMANAN AKUN & OTENTIKASI DUA FAKTOR (2FA/OTP) */}
+      {/* ==================================================== */}
+      {activeTab === 'keamanan' && (
+        <Security2FaTab showToast={showToast} />
       )}
 
       {/* ==================================================== */}
@@ -1896,7 +2096,15 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
               >
                 <div className="space-y-2">
                   {act.imageUrl && (
-                    <img src={act.imageUrl} alt="" className="w-full h-32 rounded-xl object-cover border border-slate-200" />
+                    <div
+                      onClick={() => setPreviewPhotoModal({ url: act.imageUrl, title: act.title, subtitle: `${act.category} • ${act.location}` })}
+                      className="w-full h-36 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 cursor-pointer group relative"
+                    >
+                      <img src={act.imageUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <Eye className="w-5 h-5 text-white drop-shadow" />
+                      </div>
+                    </div>
                   )}
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 uppercase">
@@ -1960,13 +2168,19 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
                   className="p-4 rounded-2xl border border-slate-200 hover:border-slate-300 bg-white transition-all space-y-3 flex flex-col justify-between"
                 >
                   <div className="space-y-2">
-                    <div className="w-full h-40 rounded-xl overflow-hidden relative bg-slate-100 border border-slate-200">
-                      <img src={photo.photoUrl} alt="" className="w-full h-full object-cover" />
+                    <div 
+                      onClick={() => setPreviewPhotoModal({ url: photo.photoUrl, title: photo.activityTitle, subtitle: `Pengunggah: ${photo.uploaderName} • ${photo.category}` })}
+                      className="w-full h-40 rounded-xl overflow-hidden relative bg-slate-100 border border-slate-200 cursor-pointer group"
+                    >
+                      <img src={photo.photoUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                       {photo.fileSizeKb && (
                         <span className="absolute top-2 right-2 bg-black/60 backdrop-blur-xs text-white text-[10px] font-semibold px-2 py-0.5 rounded">
                           {photo.fileSizeKb} KB (WebP)
                         </span>
                       )}
+                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <Eye className="w-5 h-5 text-white drop-shadow" />
+                      </div>
                     </div>
 
                     <div className="flex items-center justify-between gap-2">
@@ -2079,16 +2293,25 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
           {/* Media Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {mediaList.map((item) => (
-              <div key={item.id} className="group relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-900 aspect-video">
-                <img src={item.url} alt={item.name} className="w-full h-full object-cover group-hover:opacity-80 transition-opacity" />
+              <div 
+                key={item.id} 
+                onClick={() => setPreviewPhotoModal({ url: item.url, title: item.name, subtitle: `${item.category} • Diunggah: ${item.uploadedAt}` })}
+                className="group relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-900 aspect-video cursor-pointer"
+              >
+                <SmartImage src={item.url} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" width={320} height={180} />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-between p-2.5 opacity-0 group-hover:opacity-100 transition-opacity">
                   <div className="flex justify-between items-center">
                     <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-emerald-700 text-white uppercase">
                       {item.category}
                     </span>
                     <button
-                      onClick={() => deleteMediaItem(item.id)}
-                      className="p-1 rounded-md bg-rose-600 text-white hover:bg-rose-700"
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteMediaItem(item.id);
+                      }}
+                      className="p-1 rounded-md bg-rose-600 text-white hover:bg-rose-700 transition-colors"
+                      title="Hapus Media"
                     >
                       <Trash2 className="w-3 h-3" />
                     </button>
@@ -2188,6 +2411,57 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
           </div>
         </div>
       )}
+
+      {/* Lightbox / High-Res Image Preview Modal */}
+      {previewPhotoModal && (
+        <div 
+          onClick={() => setPreviewPhotoModal(null)}
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md p-4 flex items-center justify-center animate-in fade-in duration-200"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-slate-900 border border-slate-700 rounded-3xl max-w-3xl w-full overflow-hidden shadow-2xl space-y-3 flex flex-col max-h-[90vh]"
+          >
+            <div className="flex items-center justify-between p-4 border-b border-slate-800">
+              <div className="min-w-0 pr-4">
+                <h3 className="text-sm font-bold text-white truncate">{previewPhotoModal.title}</h3>
+                {previewPhotoModal.subtitle && (
+                  <p className="text-xs text-slate-400 truncate">{previewPhotoModal.subtitle}</p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewPhotoModal(null)}
+                className="p-1.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+                title="Tutup"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-4 flex-1 flex items-center justify-center bg-black/40 overflow-auto">
+              <img 
+                src={previewPhotoModal.url} 
+                alt={previewPhotoModal.title} 
+                className="max-h-[65vh] max-w-full rounded-xl object-contain border border-slate-800 shadow-lg" 
+              />
+            </div>
+
+            <div className="p-3 border-t border-slate-800 flex justify-between items-center text-xs text-slate-400">
+              <span className="truncate">Resolusi Asli</span>
+              <a
+                href={previewPhotoModal.url}
+                target="_blank"
+                rel="noreferrer"
+                className="px-3 py-1.5 rounded-lg bg-emerald-800 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5"
+              >
+                <span>Buka Gambar Asli</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+      </div>
     </div>
   );
 };

@@ -8,15 +8,14 @@ import {
   DownloadCloud, 
   Copy, 
   Check, 
-  ShieldCheck, 
-  HardDrive, 
   FolderArchive, 
   ExternalLink, 
   Key, 
   Globe, 
   Terminal,
   Zap,
-  Server
+  Radio,
+  Clock
 } from 'lucide-react';
 import { 
   getSupabaseConfig, 
@@ -24,7 +23,6 @@ import {
   clearSupabaseConfig, 
   testSupabaseConnection, 
   pushAllDataToSupabase, 
-  pullAllDataFromSupabase, 
   SUPABASE_SQL_SCHEMA,
   SUPABASE_BUCKETS
 } from '../../../lib/supabase';
@@ -94,6 +92,7 @@ export const SupabaseSettingsTab: React.FC<SupabaseSettingsTabProps> = ({ onShow
 
     onShowToast('Kredensial Supabase berhasil disimpan.');
     runConnectionTest(true);
+    villageData.refreshCloudData();
   };
 
   const handleClearCredentials = () => {
@@ -107,7 +106,7 @@ export const SupabaseSettingsTab: React.FC<SupabaseSettingsTabProps> = ({ onShow
   };
 
   const handlePushAllData = async () => {
-    if (!confirm('Kirim dan sinkronkan seluruh data Desa Brabo lokal (pamong, surat, kegiatan, berita, peta, foto warga) ke Supabase?')) {
+    if (!confirm('Kirim dan sinkronkan seluruh data Desa Brabo lokal (pamong, surat, aduan, UMKM, demografi, kegiatan, berita, peta, foto warga) ke Supabase?')) {
       return;
     }
 
@@ -128,6 +127,11 @@ export const SupabaseSettingsTab: React.FC<SupabaseSettingsTabProps> = ({ onShow
       mediaList: villageData.mediaList,
       letterTemplates: villageData.letterTemplates,
       signatories: villageData.signatories,
+      complaints: villageData.complaints,
+      umkmList: villageData.umkmList,
+      hamletDemographics: villageData.hamletDemographics,
+      villageDemographicSummary: villageData.villageDemographicSummary,
+      demographicEvents: villageData.demographicEvents,
     };
 
     const res = await pushAllDataToSupabase(payload);
@@ -137,6 +141,7 @@ export const SupabaseSettingsTab: React.FC<SupabaseSettingsTabProps> = ({ onShow
     if (res.success) {
       setSyncDetails(res.details || null);
       onShowToast(res.message);
+      villageData.refreshCloudData();
     } else {
       alert(`Gagal sinkronisasi: ${res.message}\n\nPastikan Anda telah menjalankan skrip SQL Schema di Supabase SQL Editor.`);
     }
@@ -150,44 +155,11 @@ export const SupabaseSettingsTab: React.FC<SupabaseSettingsTabProps> = ({ onShow
     setIsSyncing(true);
     setSyncDirection('pull');
 
-    const res = await pullAllDataFromSupabase();
+    await villageData.refreshCloudData();
+
     setIsSyncing(false);
     setSyncDirection(null);
-
-    if (res.success && res.data) {
-      const d = res.data;
-      if (d.pamong && d.pamong.length > 0) {
-        const head = d.pamong.find((p: any) => p.role.toLowerCase().includes('kepala desa'));
-        const others = d.pamong.filter((p: any) => !p.role.toLowerCase().includes('kepala desa'));
-        if (head) {
-          villageData.updateVillageHead({
-            id: head.id,
-            name: head.name,
-            role: head.role,
-            period: head.period,
-            photoUrl: head.photo_url,
-            status: head.status,
-            description: head.description,
-          });
-        }
-        if (others.length > 0) {
-          // Format officials
-          others.forEach((off: any) => {
-            villageData.updateOfficial(off.id, {
-              name: off.name,
-              role: off.role,
-              period: off.period,
-              photoUrl: off.photo_url,
-              status: off.status,
-            });
-          });
-        }
-      }
-
-      onShowToast(res.message);
-    } else {
-      alert(`Gagal mengambil data: ${res.message}`);
-    }
+    onShowToast('Data terbaru berhasil disinkronkan dari Supabase Cloud.');
   };
 
   const copySqlSchema = () => {
@@ -197,7 +169,7 @@ export const SupabaseSettingsTab: React.FC<SupabaseSettingsTabProps> = ({ onShow
     setTimeout(() => setCopiedSql(false), 3000);
   };
 
-  const isConnected = connectionStatus?.success;
+  const isConnected = connectionStatus?.success || villageData.isCloudConnected;
 
   return (
     <div className="space-y-8">
@@ -211,7 +183,7 @@ export const SupabaseSettingsTab: React.FC<SupabaseSettingsTabProps> = ({ onShow
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-base sm:text-lg font-bold">
-                  Integrasi Basis Data & Storage Supabase
+                  Koneksi Database Cloud & Realtime Supabase
                 </h3>
                 <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
                   isConnected 
@@ -222,7 +194,7 @@ export const SupabaseSettingsTab: React.FC<SupabaseSettingsTabProps> = ({ onShow
                 </span>
               </div>
               <p className="text-xs text-slate-400 mt-0.5">
-                Koneksi cloud PostgreSQL & Object Storage mandiri untuk data pamong, surat, kegiatan, warta, peta, dan foto warga Desa Brabo.
+                Sinkronisasi persistensi data otomatis antar-pamong (PostgreSQL Cloud, Realtime Replication & Object Storage) untuk seluruh modul Desa Brabo.
               </p>
             </div>
           </div>
@@ -245,6 +217,18 @@ export const SupabaseSettingsTab: React.FC<SupabaseSettingsTabProps> = ({ onShow
               <span>Buka Supabase</span>
               <ExternalLink className="w-3.5 h-3.5" />
             </a>
+          </div>
+        </div>
+
+        {/* Realtime Status Bar */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-800">
+          <div className="flex items-center gap-2 text-xs text-slate-300">
+            <Radio className={`w-3.5 h-3.5 ${isConnected ? 'text-emerald-400 animate-pulse' : 'text-slate-500'}`} />
+            <span>Status Realtime: <strong>{isConnected ? 'Aktif (Streaming Perubahan Antar-Pamong)' : 'Offline / Menunggu Konfigurasi'}</strong></span>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-slate-300 sm:justify-end">
+            <Clock className="w-3.5 h-3.5 text-slate-400" />
+            <span>Sinkronisasi Terakhir: <strong>{villageData.lastCloudSync || 'Belum ada'}</strong></span>
           </div>
         </div>
 
@@ -322,7 +306,7 @@ export const SupabaseSettingsTab: React.FC<SupabaseSettingsTabProps> = ({ onShow
                 className="flex-1 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
               >
                 <Check className="w-4 h-4" />
-                <span>Simpan & Verifikasi</span>
+                <span>Simpan & Aktifkan</span>
               </button>
               {(urlInput || anonKeyInput) && (
                 <button
@@ -349,6 +333,14 @@ export const SupabaseSettingsTab: React.FC<SupabaseSettingsTabProps> = ({ onShow
                 <span className="text-[10px] text-slate-400">Foto Warga (WebP)</span>
               </div>
               <div className="flex items-center justify-between p-1.5 bg-white rounded-lg border border-slate-200">
+                <span className="font-mono text-emerald-950 font-bold">{SUPABASE_BUCKETS.UMKM}</span>
+                <span className="text-[10px] text-slate-400">Foto UMKM Desa</span>
+              </div>
+              <div className="flex items-center justify-between p-1.5 bg-white rounded-lg border border-slate-200">
+                <span className="font-mono text-emerald-950 font-bold">{SUPABASE_BUCKETS.COMPLAINTS}</span>
+                <span className="text-[10px] text-slate-400">Bukti Aduan Warga</span>
+              </div>
+              <div className="flex items-center justify-between p-1.5 bg-white rounded-lg border border-slate-200">
                 <span className="font-mono text-emerald-950 font-bold">{SUPABASE_BUCKETS.MEDIA}</span>
                 <span className="text-[10px] text-slate-400">Warta & Galeri</span>
               </div>
@@ -371,7 +363,7 @@ export const SupabaseSettingsTab: React.FC<SupabaseSettingsTabProps> = ({ onShow
                   <span>Pusat Sinkronisasi Data Cloud</span>
                 </h4>
                 <p className="text-[11px] text-slate-500 mt-0.5">
-                  Kirim data lokal saat ini ke database cloud Supabase atau tarik data terbaru.
+                  Setiap perubahan yang Anda lakukan di Admin CMS otomatis dikirim ke Supabase secara background. Gunakan tombol di bawah ini untuk sinkronisasi massal.
                 </p>
               </div>
             </div>
@@ -383,12 +375,12 @@ export const SupabaseSettingsTab: React.FC<SupabaseSettingsTabProps> = ({ onShow
                     <UploadCloud className="w-4 h-4" />
                   </div>
                   <div>
-                    <h5 className="text-xs font-bold text-emerald-950">Kirim ke Supabase (Push)</h5>
-                    <p className="text-[10px] text-emerald-800">Inisialisasi / perbarui data cloud</p>
+                    <h5 className="text-xs font-bold text-emerald-950">Kirim Massal ke Supabase (Push)</h5>
+                    <p className="text-[10px] text-emerald-800">Inisialisasi / perbarui seluruh data</p>
                   </div>
                 </div>
                 <p className="text-[11px] text-slate-600 leading-relaxed">
-                  Menyimpan seluruh data pamong ({villageData.officials.length}), surat ({villageData.submissions.length}), kegiatan ({villageData.activities.length}), warta ({villageData.news.length}), peta ({villageData.mapLocations.length}), dan foto warga ({villageData.citizenPhotos.length}) ke tabel Supabase.
+                  Menyimpan seluruh data pamong ({villageData.officials.length}), surat ({villageData.submissions.length}), aduan ({villageData.complaints.length}), UMKM ({villageData.umkmList.length}), demografi ({villageData.hamletDemographics.length} dusun), kegiatan ({villageData.activities.length}), warta ({villageData.news.length}), peta ({villageData.mapLocations.length}), dan foto warga ({villageData.citizenPhotos.length}) ke tabel Supabase.
                 </p>
                 <button
                   onClick={handlePushAllData}
@@ -396,7 +388,7 @@ export const SupabaseSettingsTab: React.FC<SupabaseSettingsTabProps> = ({ onShow
                   className="w-full py-2 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
                 >
                   <UploadCloud className={`w-4 h-4 ${isSyncing && syncDirection === 'push' ? 'animate-bounce' : ''}`} />
-                  <span>{isSyncing && syncDirection === 'push' ? 'Menyinkronkan...' : 'Sinkronkan ke Cloud'}</span>
+                  <span>{isSyncing && syncDirection === 'push' ? 'Menyinkronkan...' : 'Sinkronkan Seluruh Data ke Cloud'}</span>
                 </button>
               </div>
 
@@ -411,7 +403,7 @@ export const SupabaseSettingsTab: React.FC<SupabaseSettingsTabProps> = ({ onShow
                   </div>
                 </div>
                 <p className="text-[11px] text-slate-600 leading-relaxed">
-                  Mengunduh update data pamong dan transaksi warga terbaru dari tabel Supabase ke dalam cache aplikasi portal desa.
+                  Mengunduh update data pamong, permohonan surat, aduan warga, dan pendaftaran UMKM terbaru dari tabel Supabase ke dalam cache aplikasi portal desa.
                 </p>
                 <button
                   onClick={handlePullAllData}

@@ -18,6 +18,12 @@ import { ResearchDataAuditView } from './components/views/ResearchDataAuditView'
 import { AdminDashboardView } from './components/views/AdminDashboardView';
 import { SourceModal } from './components/common/SourceModal';
 import { VillageDataProvider } from './context/VillageDataContext';
+import { AdminAuthProvider, useAdminAuth } from './context/AdminAuthContext';
+import { LiteModeProvider, useLiteMode } from './context/LiteModeContext';
+import { PublicPcSessionBar } from './components/auth/PublicPcSessionBar';
+import { ScreenLockModal } from './components/auth/ScreenLockModal';
+import { LiteModeBanner } from './components/common/LiteModeBanner';
+import { LiteModeModal } from './components/common/LiteModeModal';
 import { 
   Building2, 
   MapPin, 
@@ -36,6 +42,7 @@ import {
 function AppContent() {
   const [activeTab, setActiveTab] = useState<NavTab>('beranda');
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
+  const [isLiteModalOpen, setIsLiteModalOpen] = useState<boolean>(false);
 
   // Scroll to top when active tab changes
   useEffect(() => {
@@ -52,11 +59,29 @@ function AppContent() {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-100 text-slate-900 font-sans selection:bg-emerald-200 selection:text-emerald-950">
-      {/* Top Main Navigation Bar */}
-      <Navbar
-        activeTab={activeTab}
-        onSelectTab={setActiveTab}
-        onOpenSourceModal={handleOpenSource}
+      {/* Sinyal 3G / Koneksi Lemah Alert Banner */}
+      <LiteModeBanner onOpenModal={() => setIsLiteModalOpen(true)} />
+
+      {/* Public PC & Session Safety Bar (Appears on public views when admin is logged in on public / balai desa mode) */}
+      {activeTab !== 'admin' && <PublicPcSessionBar />}
+
+      {/* Top Main Navigation Bar (Hidden when in Admin Dashboard / Admin CMS to maintain clean dedicated CMS aesthetic) */}
+      {activeTab !== 'admin' && (
+        <Navbar
+          activeTab={activeTab}
+          onSelectTab={setActiveTab}
+          onOpenSourceModal={handleOpenSource}
+          onOpenLiteModeModal={() => setIsLiteModalOpen(true)}
+        />
+      )}
+
+      {/* Screen Lock Security Overlay */}
+      <ScreenLockModal />
+
+      {/* Mode Hemat Kuota (Lite Mode) Configuration Modal */}
+      <LiteModeModal
+        isOpen={isLiteModalOpen}
+        onClose={() => setIsLiteModalOpen(false)}
       />
 
       {/* Main Content Area */}
@@ -179,7 +204,12 @@ function AppContent() {
         {activeTab === 'transparansi' && <TransparencyView onOpenSource={handleOpenSource} />}
         {activeTab === 'peta' && <InteractiveMapView onOpenSource={handleOpenSource} />}
         {activeTab === 'riset' && <ResearchDataAuditView onOpenSource={handleOpenSource} />}
-        {activeTab === 'admin' && <AdminDashboardView onOpenSource={handleOpenSource} />}
+        {activeTab === 'admin' && (
+          <AdminDashboardView 
+            onOpenSource={handleOpenSource} 
+            onExit={() => setActiveTab('beranda')} 
+          />
+        )}
       </main>
 
       {/* Source Citation Modal */}
@@ -188,11 +218,14 @@ function AppContent() {
         onClose={handleCloseSource}
       />
 
-      {/* Global Footer */}
-      <Footer
-        onSelectTab={setActiveTab}
-        onOpenSourceModal={handleOpenSource}
-      />
+      {/* Global Footer (Hidden when on dedicated Admin CMS) */}
+      {activeTab !== 'admin' && (
+        <Footer
+          onSelectTab={setActiveTab}
+          onOpenSourceModal={handleOpenSource}
+          onOpenLiteModeModal={() => setIsLiteModalOpen(true)}
+        />
+      )}
     </div>
   );
 }
@@ -200,7 +233,11 @@ function AppContent() {
 export default function App() {
   return (
     <VillageDataProvider>
-      <AppContent />
+      <LiteModeProvider>
+        <AdminAuthProvider>
+          <AppContent />
+        </AdminAuthProvider>
+      </LiteModeProvider>
     </VillageDataProvider>
   );
 }
