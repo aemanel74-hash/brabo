@@ -145,19 +145,40 @@ export async function testSupabaseConnection(): Promise<{
     const { data: buckets, error: storageError } = await client.storage.listBuckets();
     const bucketNames = buckets?.map((b) => b.name) || [];
 
-    // 2. Test querying officials table
-    const { error: dbError } = await client
+    // 2. Test querying officials table & other core tables
+    const { data: pamongRows, error: dbError } = await client
       .from('pamong_desa')
       .select('id')
-      .limit(1);
+      .limit(5);
 
     if (dbError && dbError.code === '42P01') {
       return {
         success: true,
-        message: 'Koneksi ke Supabase BERHASIL! Namun tabel database belum dibuat. Silakan salin & jalankan script SQL Schema di Supabase SQL Editor Anda.',
+        message: 'Koneksi ke Supabase BERHASIL! Namun tabel database belum dibuat di database Anda. Silakan salin & jalankan script SQL Schema di Supabase SQL Editor Anda lalu klik Sinkronkan Seluruh Data (Push).',
         bucketsFound: bucketNames,
         tablesFound: [],
       };
+    }
+
+    // Check other village tables presence
+    const tablesChecked: string[] = [];
+    try {
+      const { error: orgErr, count: orgCount } = await client.from('kelembagaan_desa').select('id', { count: 'exact', head: true });
+      if (!orgErr) tablesChecked.push(`kelembagaan_desa (${orgCount ?? 0} data)`);
+      
+      const { error: photoErr, count: photoCount } = await client.from('foto_partisipasi_warga').select('id', { count: 'exact', head: true });
+      if (!photoErr) tablesChecked.push(`foto_partisipasi_warga (${photoCount ?? 0} data)`);
+
+      const { error: actErr, count: actCount } = await client.from('kegiatan_desa').select('id', { count: 'exact', head: true });
+      if (!actErr) tablesChecked.push(`kegiatan_desa (${actCount ?? 0} data)`);
+
+      const { error: pamongFullErr, count: pamongCount } = await client.from('pamong_desa').select('id', { count: 'exact', head: true });
+      if (!pamongFullErr) tablesChecked.push(`pamong_desa (${pamongCount ?? 0} data)`);
+      
+      const { error: docErr, count: docCount } = await client.from('pengajuan_dokumen').select('id', { count: 'exact', head: true });
+      if (!docErr) tablesChecked.push(`pengajuan_dokumen (${docCount ?? 0} data)`);
+    } catch {
+      // ignore non-critical count errors
     }
 
     if (dbError && !storageError) {
@@ -165,6 +186,7 @@ export async function testSupabaseConnection(): Promise<{
         success: true,
         message: `Koneksi Supabase aktif. Respon query: ${dbError.message}`,
         bucketsFound: bucketNames,
+        tablesFound: tablesChecked,
       };
     }
 
@@ -172,7 +194,7 @@ export async function testSupabaseConnection(): Promise<{
       success: true,
       message: 'Koneksi ke Database Cloud & Storage Supabase AKTIF dan SIAP DIGUNAKAN untuk sinkronisasi antar-pamong!',
       bucketsFound: bucketNames,
-      tablesFound: ['pamong_desa', 'pengajuan_dokumen', 'aduan_warga', 'umkm_desa'],
+      tablesFound: tablesChecked.length > 0 ? tablesChecked : ['pamong_desa', 'kelembagaan_desa', 'foto_partisipasi_warga', 'kegiatan_desa', 'pengajuan_dokumen', 'aduan_warga', 'umkm_desa'],
     };
   } catch (error: any) {
     return {
@@ -1735,12 +1757,15 @@ CREATE POLICY "Public Access Demografi Event" ON public.demografi_log_peristiwa 
 
 -- AKTIFKAN REALTIME REPLICATION UNTUK AUTO-SYNC MULTI PERANGKAT
 ALTER PUBLICATION supabase_realtime ADD TABLE public.pamong_desa;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.kelembagaan_desa;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.kegiatan_desa;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.foto_partisipasi_warga;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.berita_desa;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.peta_lokasi;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.aduan_warga;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.pengajuan_dokumen;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.template_dokumen;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.umkm_desa;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.kegiatan_desa;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.berita_desa;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.foto_partisipasi_warga;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.demografi_dusun;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.demografi_log_peristiwa;
 `;

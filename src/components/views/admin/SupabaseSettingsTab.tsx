@@ -375,20 +375,20 @@ export const SupabaseSettingsTab: React.FC<SupabaseSettingsTabProps> = ({ onShow
                     <UploadCloud className="w-4 h-4" />
                   </div>
                   <div>
-                    <h5 className="text-xs font-bold text-emerald-950">Kirim Massal ke Supabase (Push)</h5>
-                    <p className="text-[10px] text-emerald-800">Inisialisasi / perbarui seluruh data</p>
+                    <h5 className="text-xs font-bold text-emerald-950">Inisialisasi & Kirim ke Supabase (Push)</h5>
+                    <p className="text-[10px] text-emerald-800">Unggah seluruh data ke database cloud</p>
                   </div>
                 </div>
                 <p className="text-[11px] text-slate-600 leading-relaxed">
-                  Menyimpan seluruh data pamong ({villageData.officials.length}), surat ({villageData.submissions.length}), aduan ({villageData.complaints.length}), UMKM ({villageData.umkmList.length}), demografi ({villageData.hamletDemographics.length} dusun), kegiatan ({villageData.activities.length}), warta ({villageData.news.length}), peta ({villageData.mapLocations.length}), dan foto warga ({villageData.citizenPhotos.length}) ke tabel Supabase.
+                  Kirim seluruh data pamong ({villageData.officials.length + 1}), kelembagaan PKK & Karang Taruna ({villageData.pkkMembers.length + villageData.karangTarunaMembers.length}), dokumentasi foto ({villageData.citizenPhotos.length}), kegiatan ({villageData.activities.length}), warta ({villageData.news.length}), peta ({villageData.mapLocations.length}), surat ({villageData.submissions.length}), aduan ({villageData.complaints.length}), dan UMKM ({villageData.umkmList.length}) ke tabel Supabase Anda.
                 </p>
                 <button
                   onClick={handlePushAllData}
                   disabled={isSyncing || !isConnected}
-                  className="w-full py-2 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                  className="w-full py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 shadow-xs"
                 >
                   <UploadCloud className={`w-4 h-4 ${isSyncing && syncDirection === 'push' ? 'animate-bounce' : ''}`} />
-                  <span>{isSyncing && syncDirection === 'push' ? 'Menyinkronkan...' : 'Sinkronkan Seluruh Data ke Cloud'}</span>
+                  <span>{isSyncing && syncDirection === 'push' ? 'Menyinkronkan ke Supabase...' : 'Sinkronkan Seluruh Data ke Cloud (Push)'}</span>
                 </button>
               </div>
 
@@ -403,17 +403,36 @@ export const SupabaseSettingsTab: React.FC<SupabaseSettingsTabProps> = ({ onShow
                   </div>
                 </div>
                 <p className="text-[11px] text-slate-600 leading-relaxed">
-                  Mengunduh update data pamong, permohonan surat, aduan warga, dan pendaftaran UMKM terbaru dari tabel Supabase ke dalam cache aplikasi portal desa.
+                  Mengunduh pembaruan data pamong, kelembagaan PKK & Karang Taruna, dokumentasi kegiatan & foto warga, surat masuk, aduan warga, dan pendaftaran UMKM terbaru dari database Supabase Anda.
                 </p>
                 <button
                   onClick={handlePullAllData}
                   disabled={isSyncing || !isConnected}
-                  className="w-full py-2 rounded-xl bg-blue-800 hover:bg-blue-700 text-white text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                  className="w-full py-2.5 rounded-xl bg-blue-800 hover:bg-blue-700 text-white text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 shadow-xs"
                 >
                   <DownloadCloud className={`w-4 h-4 ${isSyncing && syncDirection === 'pull' ? 'animate-bounce' : ''}`} />
-                  <span>{isSyncing && syncDirection === 'pull' ? 'Mengunduh...' : 'Tarik Data Terbaru'}</span>
+                  <span>{isSyncing && syncDirection === 'pull' ? 'Mengunduh dari Supabase...' : 'Tarik Data Terbaru dari Cloud (Pull)'}</span>
                 </button>
               </div>
+            </div>
+
+            {/* Comprehensive Explanation & Quick Guide */}
+            <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 text-xs text-amber-900 space-y-2">
+              <p className="font-bold flex items-center gap-1.5 text-amber-950">
+                <AlertCircle className="w-4 h-4 text-amber-700 shrink-0" />
+                <span>Panduan Menghubungkan & Sinkronisasi Tabel Supabase:</span>
+              </p>
+              <ol className="list-decimal list-inside space-y-1.5 text-[11px] text-amber-900/90 pl-1 leading-relaxed">
+                <li>
+                  <strong>Jalankan Skrip SQL Schema:</strong> Buka <em>Supabase Dashboard &gt; SQL Editor</em>, salin skrip SQL di bawah lalu klik <strong>Run</strong> untuk membuat 12 tabel desa dan 5 bucket media.
+                </li>
+                <li>
+                  <strong>Inisialisasi Data Awal (Push):</strong> Saat tabel baru dibuat di Supabase, jumlah data di database masih kosong (0 baris). Klik tombol hijau <strong>"Sinkronkan Seluruh Data ke Cloud (Push)"</strong> di atas agar data Pamong, Kelembagaan (PKK/Karang Taruna), Dokumentasi Foto, Kegiatan, dan Layanan langsung tersimpan ke Supabase.
+                </li>
+                <li>
+                  <strong>Otomatis Realtime Seterusnya:</strong> Setiap ada pamong yang menambah, mengubah, atau menghapus data (misal: ganti pamong, tambah pengurus PKK/Karang Taruna, upload dokumentasi foto warga, verifikasi surat), aplikasi akan langsung mengirim perubahan ke Supabase secara otomatis dan realtime ke seluruh perangkat.
+                </li>
+              </ol>
             </div>
 
             {/* Sync Details Log */}
@@ -421,7 +440,7 @@ export const SupabaseSettingsTab: React.FC<SupabaseSettingsTabProps> = ({ onShow
               <div className="p-3.5 bg-slate-900 text-slate-200 rounded-2xl text-[11px] space-y-1.5 font-mono">
                 <p className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
                   <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Hasil Sinkronisasi Tabel:</span>
+                  <span>Hasil Sinkronisasi Tabel ke Supabase:</span>
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1 text-[10px]">
                   {Object.entries(syncDetails).map(([tbl, status]) => (

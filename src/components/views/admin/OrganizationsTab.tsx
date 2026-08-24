@@ -357,12 +357,12 @@ export const OrganizationsTab: React.FC<OrganizationsTabProps> = ({ onOpenSource
               >
                 {!isEditing ? (
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
                       {member.photoUrl ? (
                         <img 
                           src={member.photoUrl} 
                           alt={member.name} 
-                          className="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0" 
+                          className="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0 bg-slate-100" 
                         />
                       ) : (
                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
@@ -371,28 +371,28 @@ export const OrganizationsTab: React.FC<OrganizationsTabProps> = ({ onOpenSource
                           <User className="w-5 h-5" />
                         </div>
                       )}
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1 space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-xs font-bold text-slate-900 truncate">{member.name}</p>
+                          <p className="text-xs font-bold text-slate-900 leading-snug break-words">{member.name}</p>
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                             selectedOrgType === 'PKK' ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-blue-50 text-blue-700 border border-blue-200'
                           }`}>
                             {currentPosition}
                           </span>
                         </div>
-                        <div className="flex items-center gap-3 mt-1 text-[11px] text-slate-500">
+                        <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500">
                           <span className="flex items-center gap-1">
-                            <Calendar className="w-3 h-3 text-slate-400" />
+                            <Calendar className="w-3 h-3 text-slate-400 shrink-0" />
                             {member.period || '2021 - 2026'}
                           </span>
                           {currentContact && (
                             <span className="flex items-center gap-1 text-slate-600">
-                              <Phone className="w-3 h-3 text-slate-400" />
-                              {currentContact}
+                              <Phone className="w-3 h-3 text-slate-400 shrink-0" />
+                              <span className="truncate">{currentContact}</span>
                             </span>
                           )}
                         </div>
-                        <div className="mt-1">
+                        <div className="pt-0.5">
                           <VerificationBadge
                             status={member.status}
                             verificationSource={member.verificationSource}
@@ -405,7 +405,7 @@ export const OrganizationsTab: React.FC<OrganizationsTabProps> = ({ onOpenSource
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                    <div className="flex items-center gap-2 self-end sm:self-center shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 w-full sm:w-auto justify-end">
                       <button
                         onClick={() => handleStartEdit(member)}
                         className="p-2 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer"

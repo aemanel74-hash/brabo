@@ -154,7 +154,9 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
     deleteUmkm,
     resetToDefaults,
     exportJSON,
-    importJSON
+    importJSON,
+    isCloudConnected,
+    lastCloudSync
   } = useVillageData();
 
   const { 
@@ -781,73 +783,104 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
         </div>
       </div>
 
-      {/* Categorized & Responsive Admin Navigation Bar */}
-      <div className="bg-white rounded-2xl p-2.5 sm:p-3 shadow-sm border border-slate-200 space-y-2">
-        {/* Category Pills Filter */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs border-b border-slate-100 min-w-max sm:min-w-0">
-          {[
-            { id: 'ALL', label: 'Semua Menu' },
-            { id: 'governance', label: '🏛️ Tata Kelola & Wilayah' },
-            { id: 'services', label: '📋 Layanan Warga' },
-            { id: 'data', label: '📊 Data & Informasi' },
-            { id: 'system', label: '🔒 Sistem & Keamanan' },
-          ].map((cat) => (
+      {/* Categorized & Fully Responsive Admin Navigation Bar */}
+      <div className="bg-white rounded-2xl p-2.5 sm:p-3 shadow-sm border border-slate-200 space-y-2.5 w-full max-w-full overflow-hidden">
+        {/* Category Pills Filter & Realtime Status Indicator */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 w-full sm:w-auto">
+            {[
+              { id: 'ALL', label: 'Semua Menu' },
+              { id: 'governance', label: '🏛️ Tata Kelola' },
+              { id: 'services', label: '📋 Layanan Warga' },
+              { id: 'data', label: '📊 Data & Informasi' },
+              { id: 'system', label: '🔒 Sistem' },
+            ].map((cat) => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setActiveCategory(cat.id as any)}
+                className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all shrink-0 whitespace-nowrap cursor-pointer ${
+                  activeCategory === cat.id
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 bg-slate-50 border border-slate-200/60'
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
             <button
-              key={cat.id}
               type="button"
-              onClick={() => setActiveCategory(cat.id as any)}
-              className={`px-3 py-1 rounded-lg font-semibold text-xs transition-colors ${
-                activeCategory === cat.id
-                  ? 'bg-slate-900 text-white'
-                  : 'text-slate-600 hover:bg-slate-100'
+              onClick={() => setActiveTab('supabase')}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-all border ${
+                isCloudConnected
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                  : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
               }`}
+              title="Status Database Cloud Supabase"
             >
-              {cat.label}
+              <span className={`w-2 h-2 rounded-full ${isCloudConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+              <span>{isCloudConnected ? 'Supabase Terhubung' : 'Supabase Belum Aktif'}</span>
             </button>
-          ))}
+          </div>
         </div>
 
-        {/* Tab Buttons Scrollable Pill Strip */}
-        <div className="flex gap-1.5 overflow-x-auto py-1 min-w-max">
-          {[
-            { id: 'pamong', label: 'Pamong & SOTK', icon: Users, category: 'governance' },
-            { id: 'kewilayahan', label: `Kewilayahan (${hamlets.length} Dusun)`, icon: Compass, category: 'governance' },
-            { id: 'kelembagaan', label: `Kelembagaan (${pkkMembers.length + karangTarunaMembers.length})`, icon: HeartHandshake, category: 'governance' },
-            { id: 'signatories', label: 'Penandatangan', icon: PenTool, category: 'governance' },
-            { id: 'letters', label: `Antrean Berkas (${submissions.length})`, icon: FileText, category: 'services' },
-            { id: 'complaints', label: `Aduan Warga (${complaints.length})`, icon: MessageSquare, category: 'services' },
-            { id: 'umkm', label: `UMKM Desa (${umkmList.length})`, icon: Store, category: 'services' },
-            { id: 'templates', label: `Template Berkas (${letterTemplates.length})`, icon: Sliders, category: 'services' },
-            { id: 'demografi', label: 'Demografi & BPS', icon: Database, category: 'data' },
-            { id: 'map', label: `Peta & GPS (${mapLocations.length})`, icon: MapPin, category: 'data' },
-            { id: 'news', label: `Warta Berita (${news.length})`, icon: Newspaper, category: 'data' },
-            { id: 'activities', label: `Kegiatan (${activities.length})`, icon: Activity, category: 'data' },
-            { id: 'citizen_photos', label: `Foto Warga (${citizenPhotos.length})`, icon: Camera, category: 'data' },
-            { id: 'media', label: `Pustaka Media (${mediaList.length})`, icon: ImageIcon, category: 'data' },
-            { id: 'supabase', label: 'Koneksi Supabase', icon: Cloud, category: 'system' },
-            { id: 'keamanan', label: 'Keamanan & 2FA', icon: ShieldCheck, category: 'system' },
-            { id: 'backup', label: 'Cadangan & Audit', icon: Database, category: 'system' },
-          ]
-            .filter((tab) => activeCategory === 'ALL' || tab.category === activeCategory)
-            .map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id as AdminTab)}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${
-                    isActive
-                      ? 'bg-emerald-800 text-white shadow-xs'
-                      : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 bg-slate-50/70 border border-slate-200/60'
-                  }`}
-                >
-                  <Icon className="w-3.5 h-3.5 shrink-0" />
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
+        {/* Tab Buttons Scrollable Pill Strip with Smooth Overflow Handling */}
+        <div className="w-full max-w-full overflow-x-auto pb-1 pt-0.5">
+          <div className="flex flex-nowrap sm:flex-wrap gap-1.5 items-center min-w-max sm:min-w-0">
+            {[
+              { id: 'pamong', label: 'Pamong & SOTK', icon: Users, category: 'governance', count: officials.length + 1 },
+              { id: 'kewilayahan', label: `Kewilayahan`, icon: Compass, category: 'governance', count: hamlets.length },
+              { id: 'kelembagaan', label: `Kelembagaan`, icon: HeartHandshake, category: 'governance', count: pkkMembers.length + karangTarunaMembers.length },
+              { id: 'signatories', label: 'Penandatangan', icon: PenTool, category: 'governance', count: signatories.length },
+              { id: 'letters', label: `Antrean Berkas`, icon: FileText, category: 'services', count: submissions.length, highlight: submissions.filter(s => s.status === 'MENUNGGU_VERIFIKASI').length > 0 },
+              { id: 'complaints', label: `Aduan Warga`, icon: MessageSquare, category: 'services', count: complaints.length, highlight: complaints.filter(c => c.status === 'MENUNGGU_VERIFIKASI').length > 0 },
+              { id: 'umkm', label: `UMKM Desa`, icon: Store, category: 'services', count: umkmList.length },
+              { id: 'templates', label: `Template Surat`, icon: Sliders, category: 'services', count: letterTemplates.length },
+              { id: 'demografi', label: 'Demografi & BPS', icon: Database, category: 'data' },
+              { id: 'map', label: `Peta & GPS`, icon: MapPin, category: 'data', count: mapLocations.length },
+              { id: 'news', label: `Warta Berita`, icon: Newspaper, category: 'data', count: news.length },
+              { id: 'activities', label: `Kegiatan`, icon: Activity, category: 'data', count: activities.length },
+              { id: 'citizen_photos', label: `Foto Warga`, icon: Camera, category: 'data', count: citizenPhotos.length },
+              { id: 'media', label: `Pustaka Media`, icon: ImageIcon, category: 'data', count: mediaList.length },
+              { id: 'supabase', label: 'Database Supabase', icon: Cloud, category: 'system' },
+              { id: 'keamanan', label: 'Keamanan & 2FA', icon: ShieldCheck, category: 'system' },
+              { id: 'backup', label: 'Cadangan & Audit', icon: Database, category: 'system' },
+            ]
+              .filter((tab) => activeCategory === 'ALL' || tab.category === activeCategory)
+              .map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id as AdminTab)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 whitespace-nowrap cursor-pointer ${
+                      isActive
+                        ? 'bg-emerald-800 text-white shadow-xs'
+                        : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 bg-slate-50/80 border border-slate-200/70'
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5 shrink-0" />
+                    <span>{tab.label}</span>
+                    {tab.count !== undefined && (
+                      <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                        isActive 
+                          ? 'bg-emerald-950/60 text-emerald-200 border border-emerald-700/50' 
+                          : tab.highlight
+                            ? 'bg-amber-100 text-amber-900 font-extrabold border border-amber-300'
+                            : 'bg-slate-200/80 text-slate-700'
+                      }`}>
+                        {tab.count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+          </div>
         </div>
       </div>
 

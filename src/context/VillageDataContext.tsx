@@ -493,20 +493,34 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
       if (res.success && res.data) {
         const d = res.data;
         if (d.pamong && d.pamong.length > 0) {
-          const head = d.pamong.find((p: any) => p.role.toLowerCase().includes('kepala desa'));
-          const others = d.pamong.filter((p: any) => !p.role.toLowerCase().includes('kepala desa'));
+          const isHead = (p: any) => 
+            (p.role && (
+              p.role.toLowerCase().includes('kepala desa') || 
+              p.role.toLowerCase().includes('kades') || 
+              p.role.toLowerCase().includes('petinggi') || 
+              p.role.toLowerCase().includes('lurah')
+            )) || 
+            p.id === 'kades-definitif' || 
+            p.id === 'GOV-KADES';
+
+          const head = d.pamong.find((p: any) => isHead(p));
+          const others = d.pamong.filter((p: any) => !isHead(p));
+
           if (head) {
             setVillageHead(prev => ({
               ...prev,
-              id: head.id,
-              name: head.name,
-              role: head.role,
-              period: head.period,
+              id: head.id || prev.id,
+              name: head.name || prev.name,
+              role: head.role || prev.role,
+              period: head.period || prev.period,
               photoUrl: head.photo_url || prev.photoUrl,
-              status: head.status,
+              status: head.status || prev.status,
               description: head.description || prev.description,
+              contact: head.contact || prev.contact,
+              appointmentDate: head.appointment_date || prev.appointmentDate,
             }));
           }
+
           if (others.length > 0) {
             setOfficials(others.map((off: any) => ({
               id: off.id,
@@ -521,6 +535,18 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
               contact: off.contact,
               isConfirmedActive: off.is_confirmed_active ?? true,
             })));
+          }
+        }
+
+        // Map Kelembagaan Desa (PKK & Karang Taruna) from Supabase
+        if (d.orgMembers && d.orgMembers.length > 0) {
+          const pkk = d.orgMembers.filter((m: any) => m.orgType === 'PKK');
+          const kt = d.orgMembers.filter((m: any) => m.orgType === 'KARANG_TARUNA');
+          if (pkk.length > 0) {
+            setPkkMembers(pkk);
+          }
+          if (kt.length > 0) {
+            setKarangTarunaMembers(kt);
           }
         }
 
@@ -572,18 +598,181 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   }, [refreshCloudData]);
 
-  // Real-time Subscriptions across all pamong devices
+  // Real-time Subscriptions across all pamong devices for ALL village tables
   useEffect(() => {
     if (!isSupabaseConfigured()) return;
 
     const unsubscribe = subscribeToSupabaseRealtime((table, eventType, newRow, oldRow) => {
       console.log(`[Supabase Realtime] Table ${table} event ${eventType}`, newRow || oldRow);
-      // Auto refresh on relevant changes
       const nowTime = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       setLastCloudSync(nowTime);
       setCloudSyncMessage(`Pembaruan realtime diterima (${table})`);
 
-      if (table === 'pengajuan_dokumen') {
+      if (table === 'pamong_desa') {
+        if (newRow) {
+          const isKades = (newRow.role && (
+            newRow.role.toLowerCase().includes('kepala desa') || 
+            newRow.role.toLowerCase().includes('kades')
+          )) || newRow.id === 'kades-definitif' || newRow.id === 'GOV-KADES';
+
+          if (isKades) {
+            setVillageHead(prev => ({
+              ...prev,
+              id: newRow.id,
+              name: newRow.name,
+              role: newRow.role,
+              period: newRow.period || prev.period,
+              photoUrl: newRow.photo_url || prev.photoUrl,
+              status: newRow.status || prev.status,
+              description: newRow.description || prev.description,
+              contact: newRow.contact || prev.contact,
+              appointmentDate: newRow.appointment_date || prev.appointmentDate,
+            }));
+          } else {
+            const formatted: OfficialPerson = {
+              id: newRow.id,
+              name: newRow.name,
+              role: newRow.role,
+              period: newRow.period,
+              photoUrl: newRow.photo_url,
+              status: newRow.status,
+              sourceId: newRow.source_id || 'SRC-PEMDES-BRABO',
+              appointmentDate: newRow.appointment_date,
+              description: newRow.description,
+              contact: newRow.contact,
+              isConfirmedActive: newRow.is_confirmed_active ?? true,
+            };
+            setOfficials(prev => {
+              const exists = prev.some(o => o.id === newRow.id);
+              if (exists) {
+                return prev.map(o => o.id === newRow.id ? formatted : o);
+              }
+              return [...prev, formatted];
+            });
+          }
+        } else if (eventType === 'DELETE' && oldRow) {
+          setOfficials(prev => prev.filter(o => o.id !== oldRow.id));
+        }
+      } else if (table === 'kelembagaan_desa') {
+        if (newRow) {
+          const formatted: CommunityOrgMember = {
+            id: newRow.id,
+            orgType: newRow.org_type,
+            name: newRow.name,
+            position: newRow.position,
+            period: newRow.period,
+            photoUrl: newRow.photo_url,
+            contact: newRow.contact,
+            status: newRow.status,
+            sourceId: newRow.source_id || 'SRC-PEMDES-BRABO',
+          };
+          if (newRow.org_type === 'PKK') {
+            setPkkMembers(prev => {
+              const exists = prev.some(m => m.id === newRow.id);
+              return exists ? prev.map(m => m.id === newRow.id ? formatted : m) : [...prev, formatted];
+            });
+          } else {
+            setKarangTarunaMembers(prev => {
+              const exists = prev.some(m => m.id === newRow.id);
+              return exists ? prev.map(m => m.id === newRow.id ? formatted : m) : [...prev, formatted];
+            });
+          }
+        } else if (eventType === 'DELETE' && oldRow) {
+          setPkkMembers(prev => prev.filter(m => m.id !== oldRow.id));
+          setKarangTarunaMembers(prev => prev.filter(m => m.id !== oldRow.id));
+        }
+      } else if (table === 'kegiatan_desa') {
+        if (newRow) {
+          const formatted: ActivityItem = {
+            id: newRow.id,
+            title: newRow.title,
+            category: newRow.category,
+            frequency: newRow.frequency,
+            location: newRow.location,
+            scheduleOrDate: newRow.schedule_or_date,
+            description: newRow.description,
+            participants: newRow.participants,
+            sourceId: newRow.source_id,
+            status: newRow.status,
+            imageUrl: newRow.image_url,
+            coverImage: newRow.cover_image,
+            galleryImages: newRow.gallery_images,
+          };
+          setActivities(prev => {
+            const exists = prev.some(a => a.id === newRow.id);
+            return exists ? prev.map(a => a.id === newRow.id ? formatted : a) : [formatted, ...prev];
+          });
+        } else if (eventType === 'DELETE' && oldRow) {
+          setActivities(prev => prev.filter(a => a.id !== oldRow.id));
+        }
+      } else if (table === 'foto_partisipasi_warga') {
+        if (newRow) {
+          const formatted: CitizenActivityPhoto = {
+            id: newRow.id,
+            activityTitle: newRow.activity_title,
+            category: newRow.category,
+            uploaderName: newRow.uploader_name,
+            uploaderHamlet: newRow.uploader_hamlet,
+            uploaderPhone: newRow.uploader_phone,
+            photoUrl: newRow.photo_url,
+            caption: newRow.caption,
+            takenDate: newRow.taken_date,
+            uploadedAt: newRow.uploaded_at,
+            fileSizeKb: newRow.file_size_kb,
+            status: newRow.status,
+          };
+          setCitizenPhotos(prev => {
+            const exists = prev.some(p => p.id === newRow.id);
+            return exists ? prev.map(p => p.id === newRow.id ? formatted : p) : [formatted, ...prev];
+          });
+        } else if (eventType === 'DELETE' && oldRow) {
+          setCitizenPhotos(prev => prev.filter(p => p.id !== oldRow.id));
+        }
+      } else if (table === 'berita_desa') {
+        if (newRow) {
+          const formatted: NewsArticle = {
+            id: newRow.id,
+            title: newRow.title,
+            date: newRow.date,
+            category: newRow.category,
+            excerpt: newRow.summary,
+            content: newRow.content,
+            author: newRow.author,
+            sourceId: newRow.source_id,
+            status: newRow.status,
+            featured: newRow.featured,
+            imageUrl: newRow.image_url,
+          };
+          setNews(prev => {
+            const exists = prev.some(n => n.id === newRow.id);
+            return exists ? prev.map(n => n.id === newRow.id ? formatted : n) : [formatted, ...prev];
+          });
+        } else if (eventType === 'DELETE' && oldRow) {
+          setNews(prev => prev.filter(n => n.id !== oldRow.id));
+        }
+      } else if (table === 'peta_lokasi') {
+        if (newRow) {
+          const formatted: MapLocation = {
+            id: newRow.id,
+            name: newRow.name,
+            category: newRow.category,
+            lat: Number(newRow.lat),
+            lng: Number(newRow.lng),
+            description: newRow.description,
+            address: newRow.address,
+            photoUrl: newRow.photo_url,
+            status: newRow.status,
+            sourceId: newRow.source_id,
+            verificationStatus: newRow.verification_status,
+          };
+          setMapLocations(prev => {
+            const exists = prev.some(m => m.id === newRow.id);
+            return exists ? prev.map(m => m.id === newRow.id ? formatted : m) : [...prev, formatted];
+          });
+        } else if (eventType === 'DELETE' && oldRow) {
+          setMapLocations(prev => prev.filter(m => m.id !== oldRow.id));
+        }
+      } else if (table === 'pengajuan_dokumen') {
         if (eventType === 'INSERT' && newRow) {
           setSubmissions(prev => {
             if (prev.some(s => s.id === newRow.id || s.trackingCode === newRow.tracking_code)) return prev;
