@@ -375,7 +375,14 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
   const [mapLocations, setMapLocations] = useState<MapLocation[]>(() => {
     try {
       const saved = localStorage.getItem(`${STORAGE_KEY}_mapLocations`);
-      return saved ? JSON.parse(saved) : INITIAL_MAP_LOCATIONS;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.length > 0 && (parsed[0].lat > -7.08 || parsed[1]?.lng < 110.572)) {
+          return INITIAL_MAP_LOCATIONS;
+        }
+        return parsed;
+      }
+      return INITIAL_MAP_LOCATIONS;
     } catch {
       return INITIAL_MAP_LOCATIONS;
     }
@@ -384,7 +391,20 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
   const [villageBoundary, setVillageBoundary] = useState<VillageBoundary>(() => {
     try {
       const saved = localStorage.getItem(`${STORAGE_KEY}_villageBoundary`);
-      return saved ? JSON.parse(saved) : INITIAL_VILLAGE_BOUNDARY;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.coordinates && parsed.coordinates.length > 0) {
+          // If legacy coordinates contain oversized south/west points
+          const isLegacyOversized = parsed.coordinates.some(
+            (c: [number, number]) => c[0] < -7.11 || c[1] < 110.571 || c[0] > -7.07
+          );
+          if (isLegacyOversized) {
+            return INITIAL_VILLAGE_BOUNDARY;
+          }
+        }
+        return parsed;
+      }
+      return INITIAL_VILLAGE_BOUNDARY;
     } catch {
       return INITIAL_VILLAGE_BOUNDARY;
     }
