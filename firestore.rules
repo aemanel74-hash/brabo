@@ -1,0 +1,88 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Public readable collections for transparent village portal
+    match /village_settings/{settingId} {
+      allow read: if true;
+      allow write: if true; // Allows web CMS multi-device sync
+    }
+
+    match /officials/{officialId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /news/{newsId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /activities/{activityId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /hamlets/{hamletId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /signatories/{signatoryId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /letter_templates/{templateId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /map_locations/{locationId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /media/{mediaId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /submissions/{submissionId} {
+      allow read, write: if true;
+    }
+
+    match /complaints/{complaintId} {
+      allow read, write: if true;
+    }
+
+    match /umkm/{umkmId} {
+      allow read, write: if true;
+    }
+
+    match /pkk_members/{memberId} {
+      allow read, write: if true;
+    }
+
+    match /karang_taruna_members/{memberId} {
+      allow read, write: if true;
+    }
+
+    match /citizen_photos/{photoId} {
+      allow read, write: if true;
+    }
+
+    match /hamlet_demographics/{demoId} {
+      allow read, write: if true;
+    }
+
+    match /demographic_events/{eventId} {
+      allow read, write: if true;
+    }
+  }
+}

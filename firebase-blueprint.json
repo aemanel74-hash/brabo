@@ -1,0 +1,295 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Website Digital Desa Brabo - Database Blueprint",
+  "entities": {
+    "VillageSetting": {
+      "title": "Village Setting",
+      "description": "Pengaturan global desa Brabo termasuk kepala desa, batas wilayah, dan ringkasan kependudukan.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "villageHead": { "type": "object" },
+        "villageBoundary": { "type": "object" },
+        "villageDemographicSummary": { "type": "object" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id"]
+    },
+    "OfficialPerson": {
+      "title": "Pamong / Perangkat Desa",
+      "description": "Data pamong, perangkat desa, kepala dusun, kasi, dan kaur Desa Brabo.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string" },
+        "period": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "status": { "type": "string" },
+        "sourceId": { "type": "string" },
+        "appointmentDate": { "type": "string" },
+        "description": { "type": "string" },
+        "contact": { "type": "string" },
+        "isConfirmedActive": { "type": "boolean" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "role"]
+    },
+    "NewsArticle": {
+      "title": "Berita Desa",
+      "description": "Kabar berita, transparansi, dan publikasi desa.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "summary": { "type": "string" },
+        "content": { "type": "string" },
+        "category": { "type": "string" },
+        "author": { "type": "string" },
+        "publishedAt": { "type": "string" },
+        "imageUrl": { "type": "string" }
+      },
+      "required": ["id", "title"]
+    },
+    "ActivityItem": {
+      "title": "Agenda & Kegiatan",
+      "description": "Jadwal kegiatan desa, posyandu, musyawarah, dan kerja bakti.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "date": { "type": "string" },
+        "location": { "type": "string" },
+        "description": { "type": "string" },
+        "organizer": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "title"]
+    },
+    "HamletData": {
+      "title": "Data Dusun",
+      "description": "Data 3 dusun (Dukoh, Krajan, Cangkring).",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "headName": { "type": "string" },
+        "population": { "type": "number" },
+        "households": { "type": "number" }
+      },
+      "required": ["id", "name"]
+    },
+    "Signatory": {
+      "title": "Penandatangan Dokumen",
+      "description": "Daftar penandatangan berkas surat kedinasan desa.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "position": { "type": "string" },
+        "nipd": { "type": "string" },
+        "isActive": { "type": "boolean" }
+      },
+      "required": ["id", "name", "position"]
+    },
+    "DocumentTemplate": {
+      "title": "Template Format Surat",
+      "description": "Template format permohonan surat administrasi warga.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "code": { "type": "string" },
+        "category": { "type": "string" }
+      },
+      "required": ["id", "name", "code"]
+    },
+    "MapLocation": {
+      "title": "Lokasi Peta WebGIS",
+      "description": "Titik fasilitas umum, sekolah, pesantren, dan kantor desa di peta.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "lat": { "type": "number" },
+        "lng": { "type": "number" },
+        "description": { "type": "string" },
+        "address": { "type": "string" }
+      },
+      "required": ["id", "name", "lat", "lng"]
+    },
+    "MediaItem": {
+      "title": "Galeri Media",
+      "description": "Koleksi foto dan video dokumentasi desa.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "url": { "type": "string" },
+        "category": { "type": "string" },
+        "uploadedAt": { "type": "string" }
+      },
+      "required": ["id", "title", "url"]
+    },
+    "LetterSubmission": {
+      "title": "Pengajuan Surat Warga",
+      "description": "Permohonan surat warga online.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "trackingCode": { "type": "string" },
+        "fullName": { "type": "string" },
+        "nik": { "type": "string" },
+        "serviceName": { "type": "string" },
+        "status": { "type": "string" },
+        "submittedAt": { "type": "string" }
+      },
+      "required": ["id", "trackingCode", "fullName", "nik"]
+    },
+    "CitizenComplaint": {
+      "title": "Pengaduan & Aspirasi Warga",
+      "description": "Laporan dan aspirasi pelayanan masyarakat.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "senderName": { "type": "string" },
+        "category": { "type": "string" },
+        "status": { "type": "string" },
+        "submittedAt": { "type": "string" }
+      },
+      "required": ["id", "title"]
+    },
+    "VillageUmkm": {
+      "title": "Data UMKM Desa",
+      "description": "Direktori usaha mikro kecil menengah warga desa.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "owner": { "type": "string" },
+        "category": { "type": "string" },
+        "address": { "type": "string" }
+      },
+      "required": ["id", "name", "owner"]
+    },
+    "CommunityOrgMember": {
+      "title": "Anggota Lembaga Desa",
+      "description": "Kader PKK dan Karang Taruna Desa Brabo.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string" },
+        "orgType": { "type": "string" }
+      },
+      "required": ["id", "name", "role", "orgType"]
+    },
+    "CitizenActivityPhoto": {
+      "title": "Foto Kegiatan Warga",
+      "description": "Dokumentasi kegiatan masyarakat dari warga.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "uploaderName": { "type": "string" }
+      },
+      "required": ["id", "title", "photoUrl"]
+    },
+    "HamletDemographicRecord": {
+      "title": "Demografi Dusun & RT/RW",
+      "description": "Rincian data penduduk per dusun dan RT/RW.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "hamletName": { "type": "string" },
+        "totalPopulation": { "type": "number" }
+      },
+      "required": ["id", "hamletName"]
+    },
+    "DemographicEventLog": {
+      "title": "Log Mutasi Penduduk",
+      "description": "Catatan kelahiran, kematian, pindah, dan datang.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "eventType": { "type": "string" },
+        "personName": { "type": "string" },
+        "date": { "type": "string" }
+      },
+      "required": ["id", "eventType", "personName"]
+    }
+  },
+  "firestore": {
+    "/village_settings/{settingId}": {
+      "schema": "VillageSetting",
+      "description": "Pengaturan global desa."
+    },
+    "/officials/{officialId}": {
+      "schema": "OfficialPerson",
+      "description": "Data pamong dan perangkat desa."
+    },
+    "/news/{newsId}": {
+      "schema": "NewsArticle",
+      "description": "Berita dan transparansi desa."
+    },
+    "/activities/{activityId}": {
+      "schema": "ActivityItem",
+      "description": "Agenda dan kegiatan desa."
+    },
+    "/hamlets/{hamletId}": {
+      "schema": "HamletData",
+      "description": "Data dusun desa Brabo."
+    },
+    "/signatories/{signatoryId}": {
+      "schema": "Signatory",
+      "description": "Penandatangan surat desa."
+    },
+    "/letter_templates/{templateId}": {
+      "schema": "DocumentTemplate",
+      "description": "Format surat desa."
+    },
+    "/map_locations/{locationId}": {
+      "schema": "MapLocation",
+      "description": "Lokasi fasilitas WebGIS."
+    },
+    "/media/{mediaId}": {
+      "schema": "MediaItem",
+      "description": "Galeri media desa."
+    },
+    "/submissions/{submissionId}": {
+      "schema": "LetterSubmission",
+      "description": "Pengajuan surat warga."
+    },
+    "/complaints/{complaintId}": {
+      "schema": "CitizenComplaint",
+      "description": "Pengaduan warga."
+    },
+    "/umkm/{umkmId}": {
+      "schema": "VillageUmkm",
+      "description": "Direktori UMKM desa."
+    },
+    "/pkk_members/{memberId}": {
+      "schema": "CommunityOrgMember",
+      "description": "Kader PKK."
+    },
+    "/karang_taruna_members/{memberId}": {
+      "schema": "CommunityOrgMember",
+      "description": "Anggota Karang Taruna."
+    },
+    "/citizen_photos/{photoId}": {
+      "schema": "CitizenActivityPhoto",
+      "description": "Foto kiriman warga."
+    },
+    "/hamlet_demographics/{demoId}": {
+      "schema": "HamletDemographicRecord",
+      "description": "Demografi kependudukan dusun."
+    },
+    "/demographic_events/{eventId}": {
+      "schema": "DemographicEventLog",
+      "description": "Log mutasi kependudukan."
+    }
+  }
+}

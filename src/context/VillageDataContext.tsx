@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { 
   OfficialPerson, 
   ActivityItem, 
@@ -37,30 +37,14 @@ import {
   BPS_2026_REFERENCE_DATA 
 } from '../data/research/demographicsRealtime';
 import { 
-  isSupabaseConfigured, 
-  pullAllDataFromSupabase,
-  subscribeToSupabaseRealtime,
-  upsertOfficialInSupabase,
-  deleteOfficialInSupabase,
-  upsertSubmissionInSupabase,
-  deleteSubmissionInSupabase,
-  upsertComplaintInSupabase,
-  deleteComplaintInSupabase,
-  upsertUmkmInSupabase,
-  deleteUmkmInSupabase,
-  upsertNewsInSupabase,
-  deleteNewsInSupabase,
-  upsertActivityInSupabase,
-  deleteActivityInSupabase,
-  upsertMapLocationInSupabase,
-  deleteMapLocationInSupabase,
-  upsertCitizenPhotoInSupabase,
-  deleteCitizenPhotoInSupabase,
-  upsertHamletDemographicInSupabase,
-  upsertDemographicEventInSupabase,
-  upsertOrgMemberInSupabase,
-  deleteOrgMemberInSupabase
-} from '../lib/supabase';
+  isFirebaseConfigured,
+  fetchCollectionDocs,
+  saveDocToFirestore,
+  deleteDocFromFirestore,
+  batchSaveCollection,
+  subscribeToCollection,
+  subscribeToDocument
+} from '../lib/firebase';
 
 export type { 
   DocumentSubmission, 
@@ -88,7 +72,7 @@ export interface NewsArticle {
 const INITIAL_NEWS: NewsArticle[] = [
   {
     id: 'news-1',
-    title: 'Peluncuran Website Digital & Basis Riset Terbuka Desa Brabo oleh Tim KKN',
+    title: 'Peluncuran Portal Digital & Basis Riset Terbuka Desa Brabo Terkoneksi Cloud Firestore',
     category: 'Pengumuman',
     date: '15 Agustus 2024',
     author: 'Tim KKN & Humas Desa',
@@ -101,52 +85,40 @@ const INITIAL_NEWS: NewsArticle[] = [
   },
   {
     id: 'news-2',
-    title: 'Haul Akbar Pendiri & Pengasuh Pondok Pesantren Sirojuth Tholibin Brabo',
-    category: 'Pendidikan',
-    date: '28 Juli 2024',
-    author: 'Keluarga Besar PP Sirojuth Tholibin',
-    excerpt: 'Ribuan alumni santri dari berbagai daerah menghadiri peringatan Haul KH. Siraj & KH. Ahmad Syamsuri di kompleks pesantren Dusun Krajan.',
-    content: 'Pondok Pesantren Sirojuth Tholibin Brabo menyelenggarakan Haul Akbar yang dihadiri para masyaikh, tokoh ulama, serta alumni dan wali santri. Kegiatan ini sekaligus mempererat silaturahmi antarwarga desa dan memperkokoh tradisi keilmuan Islam ala Ahlussunnah wal Jamaah.',
+    title: 'Musyawarah Perencanaan Pembangunan Desa (Musrenbangdes) Penetapan RKPDes 2026',
+    category: 'Pemerintahan',
+    date: '10 Agustus 2024',
+    author: 'Sekretariat Desa',
+    excerpt: 'Pemerintah Desa Brabo bersama BPD, perwakilan 3 dusun (Dukoh, Krajan, Cangkring), RT/RW, dan tokoh masyarakat menyepakati prioritas pembangunan.',
+    content: 'Musrenbangdes menetapkan fokus penguatan jalan usaha tani di Dusun Cangkring, perluasan jaringan irigasi persawahan, serta program sanitasi dan penanganan stunting terpadu bersama Puskesmas Tanggungharjo.',
     status: 'VERIFIED',
-    sourceId: 'SRC-YAYASAN-TAJUL-ULUM',
+    sourceId: 'SRC-PEMDES-BRABO',
     featured: true,
-    imageUrl: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=800&q=80',
   },
   {
     id: 'news-3',
-    title: 'Gotong Royong Normalisasi Saluran Irigasi Tersier Pertanian Dusun Cangkring',
+    title: 'Panen Raya Padi Organik & Penguatan Ketahanan Pangan Dusun Cangkring',
     category: 'Pertanian',
-    date: '10 Juli 2024',
-    author: 'Gabungan Kelompok Tani (Gapoktan)',
-    excerpt: 'Warga petani bergotong royong membersihkan sedimentasi saluran air guna mengoptimalkan pasokan air bagi lahan persawahan padi dan palawija.',
-    content: 'Menjelang musim tanam, para petani Dusun Cangkring menggelar gotong royong bersama untuk memastikan aliran air irigasi berjalan lancar. Kegiatan ini dipandu oleh ketua kelompok tani dan dihadiri puluhan warga petani desa.',
-    status: 'SUPPORTED',
-    sourceId: 'SRC-BABAD-LOKAL',
-    imageUrl: 'https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    id: 'news-4',
-    title: 'Pelayanan Posyandu Balita & Lansia Rutin di Seluruh Pos Dusun Desa Brabo',
-    category: 'Sosial',
-    date: '05 Juli 2024',
-    author: 'Kader Posyandu & Bidan Desa',
-    excerpt: 'Pemeriksaan tumbuh kembang anak, penimbangan berat badan, imunisasi rutin, dan pemeriksaan tensi darah lansia secara gratis.',
-    content: 'Kegiatan posyandu berkala dilaksanakan di Pos Dusun Dukoh, Krajan, dan Cangkring didampingi Bidan Desa. Program ini bertujuan mencegah stunting pada anak dan memantau kesehatan warga lanjut usia.',
-    status: 'SUPPORTED',
-    sourceId: 'SRC-PEMKAB-GROB',
-    imageUrl: 'https://images.unsplash.com/photo-1576765608535-5f04d1e3f289?auto=format&fit=crop&w=800&q=80',
+    date: '02 Agustus 2024',
+    author: 'Gapoktan Brabo Makmur',
+    excerpt: 'Petani Dusun Cangkring dan Krajan mencatatkan produktivitas gabah melimpah berkat optimalisasi saluran irigasi embung desa.',
+    content: 'Kelompok Tani Desa Brabo bekerjasama dengan Dinas Pertanian Grobogan berhasil memaksimalkan musim tanam kedua. Hasil panen dipasok untuk kebutuhan konsumsi lokal pesantren dan pasar regional.',
+    status: 'VERIFIED',
+    sourceId: 'SRC-BPS-2022',
+    imageUrl: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80',
   }
 ];
 
 const INITIAL_SUBMISSIONS: LetterSubmission[] = [
   {
     id: 'sub-1',
-    trackingCode: 'BRB-782190',
+    trackingCode: 'BRB-902314',
     templateId: 'TPL-SKU',
     templateCode: 'SKU',
     serviceName: 'Surat Keterangan Usaha (SKU)',
     nik: '3315170204910001',
-    fullName: 'Slamet Riyadi',
+    fullName: 'Bambang Sutrisno',
     gender: 'Laki-laki',
     placeOfBirth: 'Grobogan',
     dateOfBirth: '1991-04-02',
@@ -189,7 +161,7 @@ const INITIAL_SUBMISSIONS: LetterSubmission[] = [
   }
 ];
 
-const STORAGE_KEY = 'brabo_portal_state_v4';
+const STORAGE_KEY = 'brabo_portal_state_v5_firebase';
 
 interface VillageDataContextType {
   // Cloud Sync & Multi-Device Realtime State
@@ -198,6 +170,7 @@ interface VillageDataContextType {
   lastCloudSync: string | null;
   cloudSyncMessage: string | null;
   refreshCloudData: () => Promise<void>;
+  seedAllToFirestore: () => Promise<{ success: boolean; message: string }>;
 
   // Village Head & Officials
   villageHead: OfficialPerson;
@@ -252,39 +225,39 @@ interface VillageDataContextType {
   addMediaItem: (item: Omit<MediaItem, 'id' | 'uploadedAt'>) => MediaItem;
   deleteMediaItem: (id: string) => void;
 
-  // Citizen Letter & Document Submissions
+  // Online Letter Submissions (Surat Mandiri)
   submissions: LetterSubmission[];
-  submitLetter: (submissionData: Omit<LetterSubmission, 'id' | 'trackingCode' | 'submittedAt' | 'status'>) => LetterSubmission;
+  submitLetter: (data: Omit<LetterSubmission, 'id' | 'trackingCode' | 'submittedAt' | 'status'>) => LetterSubmission;
   updateSubmissionStatus: (id: string, status: LetterSubmission['status'], notes?: string, customLetterNumber?: string, pickupSchedule?: string) => void;
   deleteSubmission: (id: string) => void;
 
-  // Citizen Complaints & Reports (Aduan / Lapor Warga)
+  // Citizen Complaints (Aduan Warga)
   complaints: CitizenComplaint[];
-  submitComplaint: (complaintData: Omit<CitizenComplaint, 'id' | 'trackingCode' | 'createdAt' | 'updatedAt' | 'status'>) => CitizenComplaint;
+  submitComplaint: (data: Omit<CitizenComplaint, 'id' | 'trackingCode' | 'createdAt' | 'updatedAt' | 'status'>) => CitizenComplaint;
   updateComplaintStatus: (id: string, status: ComplaintStatus, adminResponse?: string, officerInCharge?: string) => void;
   deleteComplaint: (id: string) => void;
 
-  // Lembaga Kemasyarakatan Desa (PKK & Karang Taruna)
+  // Community Organizations (PKK & Karang Taruna)
   pkkMembers: CommunityOrgMember[];
   karangTarunaMembers: CommunityOrgMember[];
   addCommunityMember: (item: Omit<CommunityOrgMember, 'id'>) => void;
   updateCommunityMember: (id: string, updated: Partial<CommunityOrgMember>) => void;
   deleteCommunityMember: (id: string) => void;
 
-  // Citizen Activity Photos (Dokumentasi Partisipasi Warga)
+  // Citizen Activity Photos
   citizenPhotos: CitizenActivityPhoto[];
   addCitizenPhoto: (photo: Omit<CitizenActivityPhoto, 'id' | 'uploadedAt'>) => CitizenActivityPhoto;
   updateCitizenPhotoStatus: (id: string, status: CitizenActivityPhoto['status']) => void;
   deleteCitizenPhoto: (id: string) => void;
 
-  // UMKM Desa Brabo (Direktori & Pendaftaran Mandiri Warga)
+  // UMKM Directory
   umkmList: VillageUmkm[];
   addUmkm: (umkm: Omit<VillageUmkm, 'id' | 'submittedAt' | 'status' | 'verificationStatus'>) => VillageUmkm;
   updateUmkm: (id: string, updated: Partial<VillageUmkm>) => void;
   updateUmkmStatus: (id: string, status: VillageUmkm['status'], verificationStatus?: VerificationStatus, notes?: string) => void;
   deleteUmkm: (id: string) => void;
 
-  // Demografi Real-Time Buku Induk Penduduk & BPS 2026
+  // Demographics (Buku Induk Kependudukan & Realtime Log)
   hamletDemographics: HamletDemographicRecord[];
   villageDemographicSummary: VillageDemographicSummary;
   demographicEvents: DemographicEventLog[];
@@ -294,7 +267,7 @@ interface VillageDataContextType {
   syncFromBps2026: () => { success: boolean; message: string; timestamp: string };
   recalculateDemographicSummary: () => void;
 
-  // Backup & Reset
+  // Global Operations
   resetToDefaults: () => void;
   exportJSON: () => string;
   importJSON: (jsonString: string) => boolean;
@@ -304,11 +277,12 @@ const VillageDataContext = createContext<VillageDataContextType | undefined>(und
 
 export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // Cloud Sync State
-  const [isCloudConnected, setIsCloudConnected] = useState<boolean>(() => isSupabaseConfigured());
+  const [isCloudConnected, setIsCloudConnected] = useState<boolean>(isFirebaseConfigured());
   const [isCloudSyncing, setIsCloudSyncing] = useState<boolean>(false);
   const [lastCloudSync, setLastCloudSync] = useState<string | null>(null);
-  const [cloudSyncMessage, setCloudSyncMessage] = useState<string | null>(null);
+  const [cloudSyncMessage, setCloudSyncMessage] = useState<string | null>('Koneksi Cloud Firestore Aktif');
 
+  // Village Head State
   const [villageHead, setVillageHead] = useState<OfficialPerson>(() => {
     try {
       const saved = localStorage.getItem(`${STORAGE_KEY}_kades`);
@@ -318,6 +292,7 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   });
 
+  // Officials State
   const [officials, setOfficials] = useState<OfficialPerson[]>(() => {
     try {
       const saved = localStorage.getItem(`${STORAGE_KEY}_officials`);
@@ -327,6 +302,7 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   });
 
+  // News State
   const [news, setNews] = useState<NewsArticle[]>(() => {
     try {
       const saved = localStorage.getItem(`${STORAGE_KEY}_news`);
@@ -336,6 +312,7 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   });
 
+  // Activities State
   const [activities, setActivities] = useState<ActivityItem[]>(() => {
     try {
       const saved = localStorage.getItem(`${STORAGE_KEY}_activities`);
@@ -345,6 +322,7 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   });
 
+  // Hamlets State
   const [hamlets, setHamlets] = useState<HamletData[]>(() => {
     try {
       const saved = localStorage.getItem(`${STORAGE_KEY}_hamlets`);
@@ -354,6 +332,7 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   });
 
+  // Signatories State
   const [signatories, setSignatories] = useState<Signatory[]>(() => {
     try {
       const saved = localStorage.getItem(`${STORAGE_KEY}_signatories`);
@@ -363,7 +342,8 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   });
 
-  const [letterTemplates, setLetterTemplates] = useState<LetterTemplate[]>(() => {
+  // Letter Templates State
+  const [letterTemplates, setLetterTemplates] = useState<DocumentTemplate[]>(() => {
     try {
       const saved = localStorage.getItem(`${STORAGE_KEY}_letterTemplates`);
       return saved ? JSON.parse(saved) : INITIAL_LETTER_TEMPLATES;
@@ -372,31 +352,25 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   });
 
+  // Map Locations State
   const [mapLocations, setMapLocations] = useState<MapLocation[]>(() => {
     try {
       const saved = localStorage.getItem(`${STORAGE_KEY}_mapLocations`);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.length > 0 && (parsed[0].lat > -7.08 || parsed[1]?.lng < 110.572)) {
-          return INITIAL_MAP_LOCATIONS;
-        }
-        return parsed;
-      }
-      return INITIAL_MAP_LOCATIONS;
+      return saved ? JSON.parse(saved) : INITIAL_MAP_LOCATIONS;
     } catch {
       return INITIAL_MAP_LOCATIONS;
     }
   });
 
+  // Village Boundary
   const [villageBoundary, setVillageBoundary] = useState<VillageBoundary>(() => {
     try {
       const saved = localStorage.getItem(`${STORAGE_KEY}_villageBoundary`);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed.coordinates && parsed.coordinates.length > 0) {
-          // If legacy coordinates contain oversized south/west points
+        if (parsed.coordinates && Array.isArray(parsed.coordinates) && parsed.coordinates.length > 0) {
           const isLegacyOversized = parsed.coordinates.some(
-            (c: [number, number]) => c[0] < -7.11 || c[1] < 110.571 || c[0] > -7.07
+            (coord: any) => Array.isArray(coord) && (Math.abs(coord[0] - (-7.0655)) > 0.05 || Math.abs(coord[1] - (110.5986)) > 0.05)
           );
           if (isLegacyOversized) {
             return INITIAL_VILLAGE_BOUNDARY;
@@ -410,6 +384,7 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   });
 
+  // Media List
   const [mediaList, setMediaList] = useState<MediaItem[]>(() => {
     try {
       const saved = localStorage.getItem(`${STORAGE_KEY}_mediaList`);
@@ -419,6 +394,7 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   });
 
+  // Submissions
   const [submissions, setSubmissions] = useState<LetterSubmission[]>(() => {
     try {
       const saved = localStorage.getItem(`${STORAGE_KEY}_submissions`);
@@ -428,6 +404,7 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   });
 
+  // PKK & Karang Taruna
   const [pkkMembers, setPkkMembers] = useState<CommunityOrgMember[]>(() => {
     try {
       const saved = localStorage.getItem(`${STORAGE_KEY}_pkk`);
@@ -446,6 +423,7 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   });
 
+  // Citizen Photos
   const [citizenPhotos, setCitizenPhotos] = useState<CitizenActivityPhoto[]>(() => {
     try {
       const saved = localStorage.getItem(`${STORAGE_KEY}_citizen_photos`);
@@ -455,6 +433,7 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   });
 
+  // Complaints
   const [complaints, setComplaints] = useState<CitizenComplaint[]>(() => {
     try {
       const saved = localStorage.getItem(`${STORAGE_KEY}_complaints`);
@@ -464,6 +443,7 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   });
 
+  // UMKM List
   const [umkmList, setUmkmList] = useState<VillageUmkm[]>(() => {
     try {
       const saved = localStorage.getItem(`${STORAGE_KEY}_umkm`);
@@ -473,6 +453,7 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   });
 
+  // Demographics
   const [hamletDemographics, setHamletDemographics] = useState<HamletDemographicRecord[]>(() => {
     try {
       const saved = localStorage.getItem(`${STORAGE_KEY}_hamlet_demographics`);
@@ -500,420 +481,282 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   });
 
-  // Pull cloud data from Supabase
+  // Keep latest state in ref to avoid re-triggering effects and callbacks
+  const dataRef = useRef({
+    villageHead,
+    villageBoundary,
+    villageDemographicSummary,
+    officials,
+    news,
+    activities,
+    hamlets,
+    signatories,
+    letterTemplates,
+    mapLocations,
+    mediaList,
+    submissions,
+    complaints,
+    umkmList,
+    hamletDemographics,
+    demographicEvents,
+    pkkMembers,
+    karangTarunaMembers,
+    citizenPhotos
+  });
+
+  useEffect(() => {
+    dataRef.current = {
+      villageHead,
+      villageBoundary,
+      villageDemographicSummary,
+      officials,
+      news,
+      activities,
+      hamlets,
+      signatories,
+      letterTemplates,
+      mapLocations,
+      mediaList,
+      submissions,
+      complaints,
+      umkmList,
+      hamletDemographics,
+      demographicEvents,
+      pkkMembers,
+      karangTarunaMembers,
+      citizenPhotos
+    };
+  });
+
+  // Seed default data to Firestore if empty
+  const seedAllToFirestore = useCallback(async () => {
+    if (!isFirebaseConfigured()) {
+      return { success: false, message: 'Firebase belum terkonfigurasi' };
+    }
+    setIsCloudSyncing(true);
+    try {
+      const current = dataRef.current;
+      // Save global settings
+      await saveDocToFirestore('village_settings', 'main', {
+        id: 'main',
+        villageHead: current.villageHead,
+        villageBoundary: current.villageBoundary,
+        villageDemographicSummary: current.villageDemographicSummary,
+        updatedAt: new Date().toISOString()
+      });
+
+      // Save collections
+      await batchSaveCollection('officials', current.officials);
+      await batchSaveCollection('news', current.news);
+      await batchSaveCollection('activities', current.activities);
+      await batchSaveCollection('hamlets', current.hamlets);
+      await batchSaveCollection('signatories', current.signatories);
+      await batchSaveCollection('letter_templates', current.letterTemplates);
+      await batchSaveCollection('map_locations', current.mapLocations);
+      await batchSaveCollection('media', current.mediaList);
+      await batchSaveCollection('submissions', current.submissions);
+      await batchSaveCollection('complaints', current.complaints);
+      await batchSaveCollection('umkm', current.umkmList);
+      await batchSaveCollection('hamlet_demographics', current.hamletDemographics);
+      await batchSaveCollection('demographic_events', current.demographicEvents);
+      if (current.pkkMembers.length > 0) await batchSaveCollection('pkk_members', current.pkkMembers);
+      if (current.karangTarunaMembers.length > 0) await batchSaveCollection('karang_taruna_members', current.karangTarunaMembers);
+      if (current.citizenPhotos.length > 0) await batchSaveCollection('citizen_photos', current.citizenPhotos);
+
+      const nowTime = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      setLastCloudSync(nowTime);
+      setCloudSyncMessage('Database Firestore berhasil disinkronisasi penuh');
+      return { success: true, message: 'Seluruh data desa berhasil diunggah ke Cloud Firestore!' };
+    } catch (err: any) {
+      console.error('Error seeding to Firestore:', err);
+      return { success: false, message: `Gagal sinkronisasi: ${err?.message || 'Error'}` };
+    } finally {
+      setIsCloudSyncing(false);
+    }
+  }, []);
+
+  // Pull all data from Firestore
   const refreshCloudData = useCallback(async () => {
-    if (!isSupabaseConfigured()) {
+    if (!isFirebaseConfigured()) {
       setIsCloudConnected(false);
       return;
     }
 
     setIsCloudSyncing(true);
     try {
-      const res = await pullAllDataFromSupabase();
-      if (res.success && res.data) {
-        const d = res.data;
-        if (d.pamong && d.pamong.length > 0) {
-          const isHead = (p: any) => 
-            (p.role && (
-              p.role.toLowerCase().includes('kepala desa') || 
-              p.role.toLowerCase().includes('kades') || 
-              p.role.toLowerCase().includes('petinggi') || 
-              p.role.toLowerCase().includes('lurah')
-            )) || 
-            p.id === 'kades-definitif' || 
-            p.id === 'GOV-KADES';
+      const [
+        offDocs,
+        newsDocs,
+        actDocs,
+        hamDocs,
+        sigDocs,
+        tplDocs,
+        mapDocs,
+        medDocs,
+        subDocs,
+        compDocs,
+        umkmDocs,
+        pkkDocs,
+        ktDocs,
+        photoDocs,
+        demoDocs,
+        eventDocs
+      ] = await Promise.all([
+        fetchCollectionDocs<OfficialPerson>('officials'),
+        fetchCollectionDocs<NewsArticle>('news'),
+        fetchCollectionDocs<ActivityItem>('activities'),
+        fetchCollectionDocs<HamletData>('hamlets'),
+        fetchCollectionDocs<Signatory>('signatories'),
+        fetchCollectionDocs<DocumentTemplate>('letter_templates'),
+        fetchCollectionDocs<MapLocation>('map_locations'),
+        fetchCollectionDocs<MediaItem>('media'),
+        fetchCollectionDocs<LetterSubmission>('submissions'),
+        fetchCollectionDocs<CitizenComplaint>('complaints'),
+        fetchCollectionDocs<VillageUmkm>('umkm'),
+        fetchCollectionDocs<CommunityOrgMember>('pkk_members'),
+        fetchCollectionDocs<CommunityOrgMember>('karang_taruna_members'),
+        fetchCollectionDocs<CitizenActivityPhoto>('citizen_photos'),
+        fetchCollectionDocs<HamletDemographicRecord>('hamlet_demographics'),
+        fetchCollectionDocs<DemographicEventLog>('demographic_events'),
+      ]);
 
-          const head = d.pamong.find((p: any) => isHead(p));
-          const others = d.pamong.filter((p: any) => !isHead(p));
-
-          if (head) {
-            setVillageHead(prev => ({
-              ...prev,
-              id: head.id || prev.id,
-              name: head.name || prev.name,
-              role: head.role || prev.role,
-              period: head.period || prev.period,
-              photoUrl: head.photo_url || prev.photoUrl,
-              status: head.status || prev.status,
-              description: head.description || prev.description,
-              contact: head.contact || prev.contact,
-              appointmentDate: head.appointment_date || prev.appointmentDate,
-            }));
-          }
-
-          if (others.length > 0) {
-            setOfficials(others.map((off: any) => ({
-              id: off.id,
-              name: off.name,
-              role: off.role,
-              period: off.period,
-              photoUrl: off.photo_url,
-              status: off.status,
-              sourceId: off.source_id || 'SRC-PEMDES-BRABO',
-              appointmentDate: off.appointment_date,
-              description: off.description,
-              contact: off.contact,
-              isConfirmedActive: off.is_confirmed_active ?? true,
-            })));
-          }
-        }
-
-        // Map Kelembagaan Desa (PKK & Karang Taruna) from Supabase
-        if (d.orgMembers && d.orgMembers.length > 0) {
-          const pkk = d.orgMembers.filter((m: any) => m.orgType === 'PKK');
-          const kt = d.orgMembers.filter((m: any) => m.orgType === 'KARANG_TARUNA');
-          if (pkk.length > 0) {
-            setPkkMembers(pkk);
-          }
-          if (kt.length > 0) {
-            setKarangTarunaMembers(kt);
-          }
-        }
-
-        if (d.submissions && d.submissions.length > 0) {
-          setSubmissions(d.submissions);
-        }
-        if (d.complaints && d.complaints.length > 0) {
-          setComplaints(d.complaints);
-        }
-        if (d.umkm && d.umkm.length > 0) {
-          setUmkmList(d.umkm);
-        }
-        if (d.activities && d.activities.length > 0) {
-          setActivities(d.activities);
-        }
-        if (d.news && d.news.length > 0) {
-          setNews(d.news);
-        }
-        if (d.mapLocations && d.mapLocations.length > 0) {
-          setMapLocations(d.mapLocations);
-        }
-        if (d.citizenPhotos && d.citizenPhotos.length > 0) {
-          setCitizenPhotos(d.citizenPhotos);
-        }
-        if (d.hamletDemographics && d.hamletDemographics.length > 0) {
-          setHamletDemographics(d.hamletDemographics);
-        }
-        if (d.demographicEvents && d.demographicEvents.length > 0) {
-          setDemographicEvents(d.demographicEvents);
-        }
-
-        setIsCloudConnected(true);
-        const nowTime = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        setLastCloudSync(nowTime);
-        setCloudSyncMessage('Tersinkronisasi dengan Database Supabase');
+      // If remote database is completely empty on first launch, auto seed!
+      if (offDocs.length === 0 && newsDocs.length === 0 && subDocs.length === 0) {
+        console.log('[Firestore] Database is empty, seeding initial data...');
+        await seedAllToFirestore();
+        return;
       }
+
+      if (offDocs.length > 0) setOfficials(offDocs);
+      if (newsDocs.length > 0) setNews(newsDocs);
+      if (actDocs.length > 0) setActivities(actDocs);
+      if (hamDocs.length > 0) setHamlets(hamDocs);
+      if (sigDocs.length > 0) setSignatories(sigDocs);
+      if (tplDocs.length > 0) setLetterTemplates(tplDocs);
+      if (mapDocs.length > 0) setMapLocations(mapDocs);
+      if (medDocs.length > 0) setMediaList(medDocs);
+      if (subDocs.length > 0) setSubmissions(subDocs);
+      if (compDocs.length > 0) setComplaints(compDocs);
+      if (umkmDocs.length > 0) setUmkmList(umkmDocs);
+      if (pkkDocs.length > 0) setPkkMembers(pkkDocs);
+      if (ktDocs.length > 0) setKarangTarunaMembers(ktDocs);
+      if (photoDocs.length > 0) setCitizenPhotos(photoDocs);
+      if (demoDocs.length > 0) setHamletDemographics(demoDocs);
+      if (eventDocs.length > 0) setDemographicEvents(eventDocs);
+
+      setIsCloudConnected(true);
+      const nowTime = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      setLastCloudSync(nowTime);
+      setCloudSyncMessage('Tersinkronisasi Realtime dengan Cloud Firestore');
     } catch (err: any) {
-      console.warn('Background Supabase pull notice:', err);
+      console.warn('Background Firestore pull notice:', err);
     } finally {
       setIsCloudSyncing(false);
     }
-  }, []);
+  }, [seedAllToFirestore]);
 
-  // Initial Cloud Sync On Mount
+  // Initial Realtime Cloud Subscriptions
   useEffect(() => {
-    if (isSupabaseConfigured()) {
-      setIsCloudConnected(true);
-      refreshCloudData();
-    }
-  }, [refreshCloudData]);
+    if (!isFirebaseConfigured()) return;
 
-  // Real-time Subscriptions across all pamong devices for ALL village tables
-  useEffect(() => {
-    if (!isSupabaseConfigured()) return;
+    setIsCloudConnected(true);
+    refreshCloudData();
 
-    const unsubscribe = subscribeToSupabaseRealtime((table, eventType, newRow, oldRow) => {
-      console.log(`[Supabase Realtime] Table ${table} event ${eventType}`, newRow || oldRow);
-      const nowTime = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      setLastCloudSync(nowTime);
-      setCloudSyncMessage(`Pembaruan realtime diterima (${table})`);
+    // Subscribe to Firestore collections in real-time
+    const unsubOfficials = subscribeToCollection<OfficialPerson>('officials', docs => {
+      if (docs.length > 0) setOfficials(docs);
+    });
 
-      if (table === 'pamong_desa') {
-        if (newRow) {
-          const isKades = (newRow.role && (
-            newRow.role.toLowerCase().includes('kepala desa') || 
-            newRow.role.toLowerCase().includes('kades')
-          )) || newRow.id === 'kades-definitif' || newRow.id === 'GOV-KADES';
+    const unsubNews = subscribeToCollection<NewsArticle>('news', docs => {
+      if (docs.length > 0) setNews(docs);
+    });
 
-          if (isKades) {
-            setVillageHead(prev => ({
-              ...prev,
-              id: newRow.id,
-              name: newRow.name,
-              role: newRow.role,
-              period: newRow.period || prev.period,
-              photoUrl: newRow.photo_url || prev.photoUrl,
-              status: newRow.status || prev.status,
-              description: newRow.description || prev.description,
-              contact: newRow.contact || prev.contact,
-              appointmentDate: newRow.appointment_date || prev.appointmentDate,
-            }));
-          } else {
-            const formatted: OfficialPerson = {
-              id: newRow.id,
-              name: newRow.name,
-              role: newRow.role,
-              period: newRow.period,
-              photoUrl: newRow.photo_url,
-              status: newRow.status,
-              sourceId: newRow.source_id || 'SRC-PEMDES-BRABO',
-              appointmentDate: newRow.appointment_date,
-              description: newRow.description,
-              contact: newRow.contact,
-              isConfirmedActive: newRow.is_confirmed_active ?? true,
-            };
-            setOfficials(prev => {
-              const exists = prev.some(o => o.id === newRow.id);
-              if (exists) {
-                return prev.map(o => o.id === newRow.id ? formatted : o);
-              }
-              return [...prev, formatted];
-            });
-          }
-        } else if (eventType === 'DELETE' && oldRow) {
-          setOfficials(prev => prev.filter(o => o.id !== oldRow.id));
-        }
-      } else if (table === 'kelembagaan_desa') {
-        if (newRow) {
-          const formatted: CommunityOrgMember = {
-            id: newRow.id,
-            orgType: newRow.org_type,
-            name: newRow.name,
-            position: newRow.position,
-            period: newRow.period,
-            photoUrl: newRow.photo_url,
-            contact: newRow.contact,
-            status: newRow.status,
-            sourceId: newRow.source_id || 'SRC-PEMDES-BRABO',
-          };
-          if (newRow.org_type === 'PKK') {
-            setPkkMembers(prev => {
-              const exists = prev.some(m => m.id === newRow.id);
-              return exists ? prev.map(m => m.id === newRow.id ? formatted : m) : [...prev, formatted];
-            });
-          } else {
-            setKarangTarunaMembers(prev => {
-              const exists = prev.some(m => m.id === newRow.id);
-              return exists ? prev.map(m => m.id === newRow.id ? formatted : m) : [...prev, formatted];
-            });
-          }
-        } else if (eventType === 'DELETE' && oldRow) {
-          setPkkMembers(prev => prev.filter(m => m.id !== oldRow.id));
-          setKarangTarunaMembers(prev => prev.filter(m => m.id !== oldRow.id));
-        }
-      } else if (table === 'kegiatan_desa') {
-        if (newRow) {
-          const formatted: ActivityItem = {
-            id: newRow.id,
-            title: newRow.title,
-            category: newRow.category,
-            frequency: newRow.frequency,
-            location: newRow.location,
-            scheduleOrDate: newRow.schedule_or_date,
-            description: newRow.description,
-            participants: newRow.participants,
-            sourceId: newRow.source_id,
-            status: newRow.status,
-            imageUrl: newRow.image_url,
-            coverImage: newRow.cover_image,
-            galleryImages: newRow.gallery_images,
-          };
-          setActivities(prev => {
-            const exists = prev.some(a => a.id === newRow.id);
-            return exists ? prev.map(a => a.id === newRow.id ? formatted : a) : [formatted, ...prev];
-          });
-        } else if (eventType === 'DELETE' && oldRow) {
-          setActivities(prev => prev.filter(a => a.id !== oldRow.id));
-        }
-      } else if (table === 'foto_partisipasi_warga') {
-        if (newRow) {
-          const formatted: CitizenActivityPhoto = {
-            id: newRow.id,
-            activityTitle: newRow.activity_title,
-            category: newRow.category,
-            uploaderName: newRow.uploader_name,
-            uploaderHamlet: newRow.uploader_hamlet,
-            uploaderPhone: newRow.uploader_phone,
-            photoUrl: newRow.photo_url,
-            caption: newRow.caption,
-            takenDate: newRow.taken_date,
-            uploadedAt: newRow.uploaded_at,
-            fileSizeKb: newRow.file_size_kb,
-            status: newRow.status,
-          };
-          setCitizenPhotos(prev => {
-            const exists = prev.some(p => p.id === newRow.id);
-            return exists ? prev.map(p => p.id === newRow.id ? formatted : p) : [formatted, ...prev];
-          });
-        } else if (eventType === 'DELETE' && oldRow) {
-          setCitizenPhotos(prev => prev.filter(p => p.id !== oldRow.id));
-        }
-      } else if (table === 'berita_desa') {
-        if (newRow) {
-          const formatted: NewsArticle = {
-            id: newRow.id,
-            title: newRow.title,
-            date: newRow.date,
-            category: newRow.category,
-            excerpt: newRow.summary,
-            content: newRow.content,
-            author: newRow.author,
-            sourceId: newRow.source_id,
-            status: newRow.status,
-            featured: newRow.featured,
-            imageUrl: newRow.image_url,
-          };
-          setNews(prev => {
-            const exists = prev.some(n => n.id === newRow.id);
-            return exists ? prev.map(n => n.id === newRow.id ? formatted : n) : [formatted, ...prev];
-          });
-        } else if (eventType === 'DELETE' && oldRow) {
-          setNews(prev => prev.filter(n => n.id !== oldRow.id));
-        }
-      } else if (table === 'peta_lokasi') {
-        if (newRow) {
-          const formatted: MapLocation = {
-            id: newRow.id,
-            name: newRow.name,
-            category: newRow.category,
-            lat: Number(newRow.lat),
-            lng: Number(newRow.lng),
-            description: newRow.description,
-            address: newRow.address,
-            photoUrl: newRow.photo_url,
-            status: newRow.status,
-            sourceId: newRow.source_id,
-            verificationStatus: newRow.verification_status,
-          };
-          setMapLocations(prev => {
-            const exists = prev.some(m => m.id === newRow.id);
-            return exists ? prev.map(m => m.id === newRow.id ? formatted : m) : [...prev, formatted];
-          });
-        } else if (eventType === 'DELETE' && oldRow) {
-          setMapLocations(prev => prev.filter(m => m.id !== oldRow.id));
-        }
-      } else if (table === 'pengajuan_dokumen') {
-        if (eventType === 'INSERT' && newRow) {
-          setSubmissions(prev => {
-            if (prev.some(s => s.id === newRow.id || s.trackingCode === newRow.tracking_code)) return prev;
-            const formatted: LetterSubmission = {
-              id: newRow.id,
-              trackingCode: newRow.tracking_code,
-              templateId: newRow.template_id,
-              templateCode: newRow.template_code || '',
-              serviceName: newRow.template_name || '',
-              fullName: newRow.applicant_name,
-              nik: newRow.applicant_nik,
-              hamlet: newRow.hamlet || 'Dusun Krajan',
-              rt: newRow.rt || '01',
-              rw: newRow.rw || '01',
-              purpose: newRow.purpose || '',
-              gender: newRow.gender,
-              placeOfBirth: newRow.place_of_birth,
-              dateOfBirth: newRow.date_of_birth,
-              religion: newRow.religion,
-              occupation: newRow.occupation,
-              uploadedFileUrl: newRow.attached_file_url,
-              uploadedFileName: newRow.attached_file_name,
-              ktpPhotoUrl: newRow.ktp_photo_url,
-              kkPhotoUrl: newRow.kk_photo_url,
-              status: newRow.status,
-              submittedAt: newRow.submitted_at,
-              notes: newRow.notes,
-              customLetterNumber: newRow.letter_number,
-              pickupSchedule: newRow.pickup_schedule,
-            };
-            return [formatted, ...prev];
-          });
-        } else if (eventType === 'UPDATE' && newRow) {
-          setSubmissions(prev => prev.map(s => s.id === newRow.id ? {
-            ...s,
-            status: newRow.status,
-            notes: newRow.notes || s.notes,
-            customLetterNumber: newRow.letter_number || s.customLetterNumber,
-            pickupSchedule: newRow.pickup_schedule || s.pickupSchedule,
-          } : s));
-        } else if (eventType === 'DELETE' && oldRow) {
-          setSubmissions(prev => prev.filter(s => s.id !== oldRow.id));
-        }
-      } else if (table === 'aduan_warga') {
-        if (eventType === 'INSERT' && newRow) {
-          setComplaints(prev => {
-            if (prev.some(c => c.id === newRow.id || c.trackingCode === newRow.tracking_code)) return prev;
-            return [{
-              id: newRow.id,
-              trackingCode: newRow.tracking_code,
-              reporterName: newRow.reporter_name,
-              isAnonymous: newRow.is_anonymous,
-              nik: newRow.nik,
-              phone: newRow.phone,
-              hamlet: newRow.hamlet,
-              specificLocation: newRow.specific_location,
-              category: newRow.category,
-              title: newRow.title,
-              description: newRow.description,
-              photoUrl: newRow.photo_url,
-              status: newRow.status,
-              createdAt: newRow.created_at,
-              updatedAt: newRow.updated_at,
-              adminResponse: newRow.admin_response,
-              adminResponseDate: newRow.admin_response_date,
-              officerInCharge: newRow.officer_in_charge,
-            }, ...prev];
-          });
-        } else if (eventType === 'UPDATE' && newRow) {
-          setComplaints(prev => prev.map(c => c.id === newRow.id ? {
-            ...c,
-            status: newRow.status,
-            adminResponse: newRow.admin_response,
-            adminResponseDate: newRow.admin_response_date,
-            officerInCharge: newRow.officer_in_charge,
-          } : c));
-        }
-      } else if (table === 'umkm_desa') {
-        if (eventType === 'INSERT' && newRow) {
-          setUmkmList(prev => {
-            if (prev.some(u => u.id === newRow.id)) return prev;
-            return [{
-              id: newRow.id,
-              name: newRow.name,
-              ownerName: newRow.owner_name,
-              category: newRow.category,
-              hamlet: newRow.hamlet,
-              address: newRow.address,
-              description: newRow.description,
-              whatsapp: newRow.whatsapp,
-              mapsUrl: newRow.maps_url,
-              photos: newRow.photos || [],
-              priceRange: newRow.price_range,
-              openingHours: newRow.opening_hours,
-              instagram: newRow.instagram,
-              marketplaceUrl: newRow.marketplace_url,
-              status: newRow.status,
-              verificationStatus: newRow.verification_status,
-              submittedAt: newRow.submitted_at,
-              verifiedAt: newRow.verified_at,
-              isFeatured: newRow.is_featured,
-              notes: newRow.notes,
-            }, ...prev];
-          });
-        } else if (eventType === 'UPDATE' && newRow) {
-          setUmkmList(prev => prev.map(u => u.id === newRow.id ? {
-            ...u,
-            status: newRow.status,
-            verificationStatus: newRow.verification_status,
-            notes: newRow.notes,
-          } : u));
-        }
+    const unsubActivities = subscribeToCollection<ActivityItem>('activities', docs => {
+      if (docs.length > 0) setActivities(docs);
+    });
+
+    const unsubHamlets = subscribeToCollection<HamletData>('hamlets', docs => {
+      if (docs.length > 0) setHamlets(docs);
+    });
+
+    const unsubSignatories = subscribeToCollection<Signatory>('signatories', docs => {
+      if (docs.length > 0) setSignatories(docs);
+    });
+
+    const unsubTemplates = subscribeToCollection<DocumentTemplate>('letter_templates', docs => {
+      if (docs.length > 0) setLetterTemplates(docs);
+    });
+
+    const unsubLocations = subscribeToCollection<MapLocation>('map_locations', docs => {
+      if (docs.length > 0) setMapLocations(docs);
+    });
+
+    const unsubMedia = subscribeToCollection<MediaItem>('media', docs => {
+      if (docs.length > 0) setMediaList(docs);
+    });
+
+    const unsubSubmissions = subscribeToCollection<LetterSubmission>('submissions', docs => {
+      if (docs.length > 0) setSubmissions(docs);
+    });
+
+    const unsubComplaints = subscribeToCollection<CitizenComplaint>('complaints', docs => {
+      if (docs.length > 0) setComplaints(docs);
+    });
+
+    const unsubUmkm = subscribeToCollection<VillageUmkm>('umkm', docs => {
+      if (docs.length > 0) setUmkmList(docs);
+    });
+
+    const unsubPkk = subscribeToCollection<CommunityOrgMember>('pkk_members', docs => {
+      if (docs.length > 0) setPkkMembers(docs);
+    });
+
+    const unsubKarangTaruna = subscribeToCollection<CommunityOrgMember>('karang_taruna_members', docs => {
+      if (docs.length > 0) setKarangTarunaMembers(docs);
+    });
+
+    const unsubPhotos = subscribeToCollection<CitizenActivityPhoto>('citizen_photos', docs => {
+      if (docs.length > 0) setCitizenPhotos(docs);
+    });
+
+    const unsubDemographics = subscribeToCollection<HamletDemographicRecord>('hamlet_demographics', docs => {
+      if (docs.length > 0) setHamletDemographics(docs);
+    });
+
+    const unsubEvents = subscribeToCollection<DemographicEventLog>('demographic_events', docs => {
+      if (docs.length > 0) setDemographicEvents(docs);
+    });
+
+    const unsubSettings = subscribeToDocument<any>('village_settings', 'main', docData => {
+      if (docData) {
+        if (docData.villageHead) setVillageHead(docData.villageHead);
+        if (docData.villageBoundary) setVillageBoundary(docData.villageBoundary);
+        if (docData.villageDemographicSummary) setVillageDemographicSummary(docData.villageDemographicSummary);
       }
     });
 
     return () => {
-      if (unsubscribe) unsubscribe();
+      if (unsubOfficials) unsubOfficials();
+      if (unsubNews) unsubNews();
+      if (unsubActivities) unsubActivities();
+      if (unsubHamlets) unsubHamlets();
+      if (unsubSignatories) unsubSignatories();
+      if (unsubTemplates) unsubTemplates();
+      if (unsubLocations) unsubLocations();
+      if (unsubMedia) unsubMedia();
+      if (unsubSubmissions) unsubSubmissions();
+      if (unsubComplaints) unsubComplaints();
+      if (unsubUmkm) unsubUmkm();
+      if (unsubPkk) unsubPkk();
+      if (unsubKarangTaruna) unsubKarangTaruna();
+      if (unsubPhotos) unsubPhotos();
+      if (unsubDemographics) unsubDemographics();
+      if (unsubEvents) unsubEvents();
+      if (unsubSettings) unsubSettings();
     };
   }, []);
 
-  // Sync to LocalStorage
+  // LocalStorage Caching for instant offline-first display
   useEffect(() => {
     try {
       localStorage.setItem(`${STORAGE_KEY}_kades`, JSON.stringify(villageHead));
@@ -965,8 +808,8 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     setOfficials(prev => {
       const updatedList = prev.map(item => (item.id === id ? { ...item, ...updated } : item));
       const target = updatedList.find(item => item.id === id);
-      if (target && isSupabaseConfigured()) {
-        upsertOfficialInSupabase(target);
+      if (target) {
+        saveDocToFirestore('officials', target.id, target);
       }
       return updatedList;
     });
@@ -976,24 +819,22 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     const newId = `GOV-${Date.now()}`;
     const newOff: OfficialPerson = { ...official, id: newId };
     setOfficials(prev => [...prev, newOff]);
-    if (isSupabaseConfigured()) {
-      upsertOfficialInSupabase(newOff);
-    }
+    saveDocToFirestore('officials', newId, newOff);
   };
 
   const deleteOfficial = (id: string) => {
     setOfficials(prev => prev.filter(item => item.id !== id));
-    if (isSupabaseConfigured()) {
-      deleteOfficialInSupabase(id);
-    }
+    deleteDocFromFirestore('officials', id);
   };
 
   const updateVillageHead = (updated: Partial<OfficialPerson>) => {
     setVillageHead(prev => {
       const newHead = { ...prev, ...updated };
-      if (isSupabaseConfigured()) {
-        upsertOfficialInSupabase(newHead);
-      }
+      saveDocToFirestore('village_settings', 'main', {
+        id: 'main',
+        villageHead: newHead,
+        updatedAt: new Date().toISOString()
+      });
       return newHead;
     });
   };
@@ -1005,17 +846,15 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
       id: `news-${Date.now()}`,
     };
     setNews(prev => [newItem, ...prev]);
-    if (isSupabaseConfigured()) {
-      upsertNewsInSupabase(newItem);
-    }
+    saveDocToFirestore('news', newItem.id, newItem);
   };
 
   const updateNews = (id: string, updated: Partial<NewsArticle>) => {
     setNews(prev => {
       const nextNews = prev.map(item => (item.id === id ? { ...item, ...updated } : item));
       const target = nextNews.find(item => item.id === id);
-      if (target && isSupabaseConfigured()) {
-        upsertNewsInSupabase(target);
+      if (target) {
+        saveDocToFirestore('news', target.id, target);
       }
       return nextNews;
     });
@@ -1023,9 +862,7 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
 
   const deleteNews = (id: string) => {
     setNews(prev => prev.filter(item => item.id !== id));
-    if (isSupabaseConfigured()) {
-      deleteNewsInSupabase(id);
-    }
+    deleteDocFromFirestore('news', id);
   };
 
   // Activities handlers
@@ -1036,17 +873,15 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
       id: newId,
     };
     setActivities(prev => [newAct, ...prev]);
-    if (isSupabaseConfigured()) {
-      upsertActivityInSupabase(newAct);
-    }
+    saveDocToFirestore('activities', newId, newAct);
   };
 
   const updateActivity = (id: string, updated: Partial<ActivityItem>) => {
     setActivities(prev => {
       const nextActs = prev.map(item => (item.id === id ? { ...item, ...updated } : item));
       const target = nextActs.find(item => item.id === id);
-      if (target && isSupabaseConfigured()) {
-        upsertActivityInSupabase(target);
+      if (target) {
+        saveDocToFirestore('activities', target.id, target);
       }
       return nextActs;
     });
@@ -1054,9 +889,7 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
 
   const deleteActivity = (id: string) => {
     setActivities(prev => prev.filter(item => item.id !== id));
-    if (isSupabaseConfigured()) {
-      deleteActivityInSupabase(id);
-    }
+    deleteDocFromFirestore('activities', id);
   };
 
   // Hamlet handlers
@@ -1076,14 +909,23 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
       activities: hamlet.activities || [],
     };
     setHamlets(prev => [...prev, newH]);
+    saveDocToFirestore('hamlets', newId, newH);
   };
 
   const updateHamlet = (id: string, updated: Partial<HamletData>) => {
-    setHamlets(prev => prev.map(h => (h.id === id ? { ...h, ...updated } : h)));
+    setHamlets(prev => {
+      const nextH = prev.map(h => (h.id === id ? { ...h, ...updated } : h));
+      const target = nextH.find(h => h.id === id);
+      if (target) {
+        saveDocToFirestore('hamlets', target.id, target);
+      }
+      return nextH;
+    });
   };
 
   const deleteHamlet = (id: string) => {
     setHamlets(prev => prev.filter(h => h.id !== id));
+    deleteDocFromFirestore('hamlets', id);
   };
 
   const updateHamletHead = (
@@ -1094,10 +936,10 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     headVerificationNote?: string,
     headCustomSourceName?: string
   ) => {
-    setHamlets(prev =>
-      prev.map(h => {
+    setHamlets(prev => {
+      const nextH = prev.map(h => {
         if (h.id === hamletId) {
-          return {
+          const mod = {
             ...h,
             headName: headName || 'Data belum diverifikasi',
             headStatus: headName ? status : 'REQUIRES_VERIFICATION',
@@ -1105,34 +947,56 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
             headVerificationNote: headVerificationNote !== undefined ? headVerificationNote : h.headVerificationNote,
             headCustomSourceName: headCustomSourceName !== undefined ? headCustomSourceName : h.headCustomSourceName,
           };
+          saveDocToFirestore('hamlets', mod.id, mod);
+          return mod;
         }
         return h;
-      })
-    );
+      });
+      return nextH;
+    });
   };
 
   // Signatory handlers
   const addSignatory = (sig: Omit<Signatory, 'id'>) => {
     const newId = `SIG-${Date.now()}`;
-    setSignatories(prev => [...prev, { ...sig, id: newId }]);
+    const newSig: Signatory = { ...sig, id: newId };
+    setSignatories(prev => [...prev, newSig]);
+    saveDocToFirestore('signatories', newId, newSig);
   };
 
   const updateSignatory = (id: string, updated: Partial<Signatory>) => {
-    setSignatories(prev => prev.map(s => (s.id === id ? { ...s, ...updated } : s)));
+    setSignatories(prev => {
+      const nextS = prev.map(s => (s.id === id ? { ...s, ...updated } : s));
+      const target = nextS.find(s => s.id === id);
+      if (target) {
+        saveDocToFirestore('signatories', target.id, target);
+      }
+      return nextS;
+    });
   };
 
   const deleteSignatory = (id: string) => {
     setSignatories(prev => prev.filter(s => s.id !== id));
+    deleteDocFromFirestore('signatories', id);
   };
 
   // Letter Template handlers
   const addLetterTemplate = (tpl: Omit<LetterTemplate, 'id'>) => {
     const newId = `TPL-${Date.now()}`;
-    setLetterTemplates(prev => [...prev, { ...tpl, id: newId }]);
+    const newTpl: DocumentTemplate = { ...tpl, id: newId };
+    setLetterTemplates(prev => [...prev, newTpl]);
+    saveDocToFirestore('letter_templates', newId, newTpl);
   };
 
   const updateLetterTemplate = (id: string, updated: Partial<LetterTemplate>) => {
-    setLetterTemplates(prev => prev.map(t => (t.id === id ? { ...t, ...updated } : t)));
+    setLetterTemplates(prev => {
+      const nextT = prev.map(t => (t.id === id ? { ...t, ...updated } : t));
+      const target = nextT.find(t => t.id === id);
+      if (target) {
+        saveDocToFirestore('letter_templates', target.id, target);
+      }
+      return nextT;
+    });
   };
 
   const duplicateLetterTemplate = (id: string) => {
@@ -1145,10 +1009,12 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
       code: `${found.code}-COPY`,
     };
     setLetterTemplates(prev => [...prev, duplicated]);
+    saveDocToFirestore('letter_templates', duplicated.id, duplicated);
   };
 
   const deleteLetterTemplate = (id: string) => {
     setLetterTemplates(prev => prev.filter(t => t.id !== id));
+    deleteDocFromFirestore('letter_templates', id);
   };
 
   // Map Location handlers
@@ -1156,17 +1022,15 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     const newId = `LOC-${Date.now()}`;
     const newLoc: MapLocation = { ...loc, id: newId };
     setMapLocations(prev => [...prev, newLoc]);
-    if (isSupabaseConfigured()) {
-      upsertMapLocationInSupabase(newLoc);
-    }
+    saveDocToFirestore('map_locations', newId, newLoc);
   };
 
   const updateMapLocation = (id: string, updated: Partial<MapLocation>) => {
     setMapLocations(prev => {
       const nextLocs = prev.map(l => (l.id === id ? { ...l, ...updated } : l));
       const target = nextLocs.find(l => l.id === id);
-      if (target && isSupabaseConfigured()) {
-        upsertMapLocationInSupabase(target);
+      if (target) {
+        saveDocToFirestore('map_locations', target.id, target);
       }
       return nextLocs;
     });
@@ -1174,13 +1038,19 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
 
   const deleteMapLocation = (id: string) => {
     setMapLocations(prev => prev.filter(l => l.id !== id));
-    if (isSupabaseConfigured()) {
-      deleteMapLocationInSupabase(id);
-    }
+    deleteDocFromFirestore('map_locations', id);
   };
 
   const updateVillageBoundary = (updated: Partial<VillageBoundary>) => {
-    setVillageBoundary(prev => ({ ...prev, ...updated }));
+    setVillageBoundary(prev => {
+      const mod = { ...prev, ...updated };
+      saveDocToFirestore('village_settings', 'main', {
+        id: 'main',
+        villageBoundary: mod,
+        updatedAt: new Date().toISOString()
+      });
+      return mod;
+    });
   };
 
   // Media Library handlers
@@ -1196,11 +1066,13 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
       uploadedAt: dateStr,
     };
     setMediaList(prev => [newMedia, ...prev]);
+    saveDocToFirestore('media', newMedia.id, newMedia);
     return newMedia;
   };
 
   const deleteMediaItem = (id: string) => {
     setMediaList(prev => prev.filter(m => m.id !== id));
+    deleteDocFromFirestore('media', id);
   };
 
   // Submissions handlers
@@ -1225,9 +1097,7 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     };
 
     setSubmissions(prev => [newSub, ...prev]);
-    if (isSupabaseConfigured()) {
-      upsertSubmissionInSupabase(newSub);
-    }
+    saveDocToFirestore('submissions', newSub.id, newSub);
     return newSub;
   };
 
@@ -1241,8 +1111,8 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
         pickupSchedule: pickupSchedule !== undefined ? pickupSchedule : s.pickupSchedule
       } : s));
       const target = nextSubs.find(s => s.id === id);
-      if (target && isSupabaseConfigured()) {
-        upsertSubmissionInSupabase(target);
+      if (target) {
+        saveDocToFirestore('submissions', target.id, target);
       }
       return nextSubs;
     });
@@ -1250,9 +1120,7 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
 
   const deleteSubmission = (id: string) => {
     setSubmissions(prev => prev.filter(s => s.id !== id));
-    if (isSupabaseConfigured()) {
-      deleteSubmissionInSupabase(id);
-    }
+    deleteDocFromFirestore('submissions', id);
   };
 
   // Citizen Complaints & Aspirations (Aduan Warga)
@@ -1278,9 +1146,7 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     };
 
     setComplaints(prev => [newComplaint, ...prev]);
-    if (isSupabaseConfigured()) {
-      upsertComplaintInSupabase(newComplaint);
-    }
+    saveDocToFirestore('complaints', newComplaint.id, newComplaint);
     return newComplaint;
   };
 
@@ -1303,8 +1169,8 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
         officerInCharge: officerInCharge || c.officerInCharge,
       } : c));
       const target = nextComps.find(c => c.id === id);
-      if (target && isSupabaseConfigured()) {
-        upsertComplaintInSupabase(target);
+      if (target) {
+        saveDocToFirestore('complaints', target.id, target);
       }
       return nextComps;
     });
@@ -1312,13 +1178,12 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
 
   const deleteComplaint = (id: string) => {
     setComplaints(prev => prev.filter(c => c.id !== id));
-    if (isSupabaseConfigured()) {
-      deleteComplaintInSupabase(id);
-    }
+    deleteDocFromFirestore('complaints', id);
   };
 
   // Community Org Members (PKK & Karang Taruna)
   const addCommunityMember = (item: Omit<CommunityOrgMember, 'id'>) => {
+    const colName = item.orgType === 'PKK' ? 'pkk_members' : 'karang_taruna_members';
     const newItem: CommunityOrgMember = {
       ...item,
       id: `COMM-${item.orgType}-${Date.now()}`,
@@ -1328,22 +1193,20 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     } else {
       setKarangTarunaMembers(prev => [...prev, newItem]);
     }
-    if (isSupabaseConfigured()) {
-      upsertOrgMemberInSupabase(newItem);
-    }
+    saveDocToFirestore(colName, newItem.id, newItem);
   };
 
   const updateCommunityMember = (id: string, updated: Partial<CommunityOrgMember>) => {
     setPkkMembers(prev => {
       const nextPkk = prev.map(m => (m.id === id ? { ...m, ...updated } : m));
       const target = nextPkk.find(m => m.id === id);
-      if (target && isSupabaseConfigured()) upsertOrgMemberInSupabase(target);
+      if (target) saveDocToFirestore('pkk_members', target.id, target);
       return nextPkk;
     });
     setKarangTarunaMembers(prev => {
       const nextKt = prev.map(m => (m.id === id ? { ...m, ...updated } : m));
       const target = nextKt.find(m => m.id === id);
-      if (target && isSupabaseConfigured()) upsertOrgMemberInSupabase(target);
+      if (target) saveDocToFirestore('karang_taruna_members', target.id, target);
       return nextKt;
     });
   };
@@ -1351,9 +1214,8 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
   const deleteCommunityMember = (id: string) => {
     setPkkMembers(prev => prev.filter(m => m.id !== id));
     setKarangTarunaMembers(prev => prev.filter(m => m.id !== id));
-    if (isSupabaseConfigured()) {
-      deleteOrgMemberInSupabase(id);
-    }
+    deleteDocFromFirestore('pkk_members', id);
+    deleteDocFromFirestore('karang_taruna_members', id);
   };
 
   // Citizen Activity Photos
@@ -1370,9 +1232,7 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
       }),
     };
     setCitizenPhotos(prev => [newPhoto, ...prev]);
-    if (isSupabaseConfigured()) {
-      upsertCitizenPhotoInSupabase(newPhoto);
-    }
+    saveDocToFirestore('citizen_photos', newPhoto.id, newPhoto);
     return newPhoto;
   };
 
@@ -1380,8 +1240,8 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     setCitizenPhotos(prev => {
       const nextPhotos = prev.map(p => (p.id === id ? { ...p, status } : p));
       const target = nextPhotos.find(p => p.id === id);
-      if (target && isSupabaseConfigured()) {
-        upsertCitizenPhotoInSupabase(target);
+      if (target) {
+        saveDocToFirestore('citizen_photos', target.id, target);
       }
       return nextPhotos;
     });
@@ -1389,12 +1249,10 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
 
   const deleteCitizenPhoto = (id: string) => {
     setCitizenPhotos(prev => prev.filter(p => p.id !== id));
-    if (isSupabaseConfigured()) {
-      deleteCitizenPhotoInSupabase(id);
-    }
+    deleteDocFromFirestore('citizen_photos', id);
   };
 
-  // UMKM Handlers (Pendaftaran Mandiri & Pengelolaan Usaha Warga)
+  // UMKM Handlers
   const addUmkm = (umkmData: Omit<VillageUmkm, 'id' | 'submittedAt' | 'status' | 'verificationStatus'>): VillageUmkm => {
     const dateStr = new Date().toLocaleDateString('id-ID', {
       day: 'numeric',
@@ -1413,9 +1271,7 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     };
 
     setUmkmList(prev => [newUmkm, ...prev]);
-    if (isSupabaseConfigured()) {
-      upsertUmkmInSupabase(newUmkm);
-    }
+    saveDocToFirestore('umkm', newUmkm.id, newUmkm);
     return newUmkm;
   };
 
@@ -1423,8 +1279,8 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     setUmkmList(prev => {
       const nextUmkm = prev.map(u => (u.id === id ? { ...u, ...updated, updatedAt: new Date().toISOString() } : u));
       const target = nextUmkm.find(u => u.id === id);
-      if (target && isSupabaseConfigured()) {
-        upsertUmkmInSupabase(target);
+      if (target) {
+        saveDocToFirestore('umkm', target.id, target);
       }
       return nextUmkm;
     });
@@ -1457,8 +1313,8 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
           : u
       );
       const target = nextUmkm.find(u => u.id === id);
-      if (target && isSupabaseConfigured()) {
-        upsertUmkmInSupabase(target);
+      if (target) {
+        saveDocToFirestore('umkm', target.id, target);
       }
       return nextUmkm;
     });
@@ -1466,9 +1322,7 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
 
   const deleteUmkm = (id: string) => {
     setUmkmList(prev => prev.filter(u => u.id !== id));
-    if (isSupabaseConfigured()) {
-      deleteUmkmInSupabase(id);
-    }
+    deleteDocFromFirestore('umkm', id);
   };
 
   // Demographics Handlers (Buku Induk Penduduk & BPS 2026)
@@ -1488,8 +1342,8 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
       const areaHa = 456.97;
       const density = totalPop > 0 ? Number((totalPop / (areaHa / 100)).toFixed(1)) : 1201.8;
 
-      setVillageDemographicSummary(prev => ({
-        ...prev,
+      const summary: VillageDemographicSummary = {
+        year: 2026,
         totalPopulation: totalPop,
         malePopulation: totalMale,
         femalePopulation: totalFemale,
@@ -1503,8 +1357,23 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
         inMigrantsCount: totalIn,
         outMigrantsCount: totalOut,
         densityPerKm2: density,
+        totalAreaHa: areaHa,
+        growthRatePercent: 1.15,
+        dataSourceType: 'BPS_GROBOGAN_2026',
+        dataSourceLabel: 'Buku Induk Kependudukan Desa Brabo 2026',
         lastUpdated: new Date().toISOString(),
-      }));
+        status: 'VERIFIED',
+        sourceId: 'SRC-BPS-2022',
+        verificationSource: 'BPS_GROBOGAN',
+        verificationNote: 'Kalkulasi otomatis Buku Induk Kependudukan Desa Brabo 2026',
+      };
+
+      setVillageDemographicSummary(summary);
+      saveDocToFirestore('village_settings', 'main', {
+        id: 'main',
+        villageDemographicSummary: summary,
+        updatedAt: new Date().toISOString()
+      });
 
       return currentHamlets;
     });
@@ -1522,9 +1391,7 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
             totalPopulation: updated.totalPopulation !== undefined ? updated.totalPopulation : newTotalPop,
             lastSynchronized: new Date().toISOString(),
           };
-          if (isSupabaseConfigured()) {
-            upsertHamletDemographicInSupabase(updatedHamlet);
-          }
+          saveDocToFirestore('hamlet_demographics', updatedHamlet.id || updatedHamlet.hamletId, updatedHamlet);
           return updatedHamlet;
         }
         return h;
@@ -1551,9 +1418,7 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     };
 
     setDemographicEvents(prev => [newEvent, ...prev]);
-    if (isSupabaseConfigured()) {
-      upsertDemographicEventInSupabase(newEvent);
-    }
+    saveDocToFirestore('demographic_events', newEvent.id, newEvent);
 
     // Automatically adjust the target hamlet demographic based on event type
     if (event.hamletId && event.hamletId !== 'ALL') {
@@ -1594,9 +1459,7 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
                 modH.femalePopulation = Math.max(0, (modH.femalePopulation || 0) - 1);
               }
             }
-            if (isSupabaseConfigured()) {
-              upsertHamletDemographicInSupabase(modH);
-            }
+            saveDocToFirestore('hamlet_demographics', modH.id || modH.hamletId, modH);
             return modH;
           }
           return h;
@@ -1610,6 +1473,7 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
 
   const deleteDemographicEvent = (id: string) => {
     setDemographicEvents(prev => prev.filter(e => e.id !== id));
+    deleteDocFromFirestore('demographic_events', id);
   };
 
   const syncFromBps2026 = (): { success: boolean; message: string; timestamp: string } => {
@@ -1688,11 +1552,9 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     ];
 
     setHamletDemographics(refreshedHamlets);
-    if (isSupabaseConfigured()) {
-      refreshedHamlets.forEach(h => upsertHamletDemographicInSupabase(h));
-    }
+    refreshedHamlets.forEach(h => saveDocToFirestore('hamlet_demographics', h.hamletId, h));
 
-    setVillageDemographicSummary({
+    const summary: VillageDemographicSummary = {
       year: 2026,
       totalPopulation: bps.totalPopulation,
       malePopulation: bps.male,
@@ -1722,6 +1584,13 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
         bpsSyncTimestamp: new Date().toISOString(),
         version: '2026.08-LATEST',
       }
+    };
+
+    setVillageDemographicSummary(summary);
+    saveDocToFirestore('village_settings', 'main', {
+      id: 'main',
+      villageDemographicSummary: summary,
+      updatedAt: new Date().toISOString()
     });
 
     const newSyncEvent: DemographicEventLog = {
@@ -1739,9 +1608,7 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     };
 
     setDemographicEvents(prev => [newSyncEvent, ...prev]);
-    if (isSupabaseConfigured()) {
-      upsertDemographicEventInSupabase(newSyncEvent);
-    }
+    saveDocToFirestore('demographic_events', newSyncEvent.id, newSyncEvent);
 
     return {
       success: true,
@@ -1772,6 +1639,7 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     setVillageDemographicSummary(INITIAL_VILLAGE_SUMMARY);
     setDemographicEvents(INITIAL_DEMOGRAPHIC_EVENTS);
     localStorage.clear();
+    seedAllToFirestore();
   };
 
   const exportJSON = () => {
@@ -1803,25 +1671,82 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
   const importJSON = (jsonString: string): boolean => {
     try {
       const parsed = JSON.parse(jsonString);
-      if (parsed.officials && Array.isArray(parsed.officials)) setOfficials(parsed.officials);
-      if (parsed.villageHead) setVillageHead(parsed.villageHead);
-      if (parsed.news && Array.isArray(parsed.news)) setNews(parsed.news);
-      if (parsed.activities && Array.isArray(parsed.activities)) setActivities(parsed.activities);
-      if (parsed.hamlets && Array.isArray(parsed.hamlets)) setHamlets(parsed.hamlets);
-      if (parsed.signatories && Array.isArray(parsed.signatories)) setSignatories(parsed.signatories);
-      if (parsed.letterTemplates && Array.isArray(parsed.letterTemplates)) setLetterTemplates(parsed.letterTemplates);
-      if (parsed.mapLocations && Array.isArray(parsed.mapLocations)) setMapLocations(parsed.mapLocations);
-      if (parsed.villageBoundary) setVillageBoundary(parsed.villageBoundary);
-      if (parsed.mediaList && Array.isArray(parsed.mediaList)) setMediaList(parsed.mediaList);
-      if (parsed.submissions && Array.isArray(parsed.submissions)) setSubmissions(parsed.submissions);
-      if (parsed.complaints && Array.isArray(parsed.complaints)) setComplaints(parsed.complaints);
-      if (parsed.pkkMembers && Array.isArray(parsed.pkkMembers)) setPkkMembers(parsed.pkkMembers);
-      if (parsed.karangTarunaMembers && Array.isArray(parsed.karangTarunaMembers)) setKarangTarunaMembers(parsed.karangTarunaMembers);
-      if (parsed.citizenPhotos && Array.isArray(parsed.citizenPhotos)) setCitizenPhotos(parsed.citizenPhotos);
-      if (parsed.umkmList && Array.isArray(parsed.umkmList)) setUmkmList(parsed.umkmList);
-      if (parsed.hamletDemographics && Array.isArray(parsed.hamletDemographics)) setHamletDemographics(parsed.hamletDemographics);
-      if (parsed.villageDemographicSummary) setVillageDemographicSummary(parsed.villageDemographicSummary);
-      if (parsed.demographicEvents && Array.isArray(parsed.demographicEvents)) setDemographicEvents(parsed.demographicEvents);
+      if (parsed.officials && Array.isArray(parsed.officials)) {
+        setOfficials(parsed.officials);
+        batchSaveCollection('officials', parsed.officials);
+      }
+      if (parsed.villageHead) {
+        setVillageHead(parsed.villageHead);
+        saveDocToFirestore('village_settings', 'main', { id: 'main', villageHead: parsed.villageHead });
+      }
+      if (parsed.news && Array.isArray(parsed.news)) {
+        setNews(parsed.news);
+        batchSaveCollection('news', parsed.news);
+      }
+      if (parsed.activities && Array.isArray(parsed.activities)) {
+        setActivities(parsed.activities);
+        batchSaveCollection('activities', parsed.activities);
+      }
+      if (parsed.hamlets && Array.isArray(parsed.hamlets)) {
+        setHamlets(parsed.hamlets);
+        batchSaveCollection('hamlets', parsed.hamlets);
+      }
+      if (parsed.signatories && Array.isArray(parsed.signatories)) {
+        setSignatories(parsed.signatories);
+        batchSaveCollection('signatories', parsed.signatories);
+      }
+      if (parsed.letterTemplates && Array.isArray(parsed.letterTemplates)) {
+        setLetterTemplates(parsed.letterTemplates);
+        batchSaveCollection('letter_templates', parsed.letterTemplates);
+      }
+      if (parsed.mapLocations && Array.isArray(parsed.mapLocations)) {
+        setMapLocations(parsed.mapLocations);
+        batchSaveCollection('map_locations', parsed.mapLocations);
+      }
+      if (parsed.villageBoundary) {
+        setVillageBoundary(parsed.villageBoundary);
+        saveDocToFirestore('village_settings', 'main', { id: 'main', villageBoundary: parsed.villageBoundary });
+      }
+      if (parsed.mediaList && Array.isArray(parsed.mediaList)) {
+        setMediaList(parsed.mediaList);
+        batchSaveCollection('media', parsed.mediaList);
+      }
+      if (parsed.submissions && Array.isArray(parsed.submissions)) {
+        setSubmissions(parsed.submissions);
+        batchSaveCollection('submissions', parsed.submissions);
+      }
+      if (parsed.complaints && Array.isArray(parsed.complaints)) {
+        setComplaints(parsed.complaints);
+        batchSaveCollection('complaints', parsed.complaints);
+      }
+      if (parsed.pkkMembers && Array.isArray(parsed.pkkMembers)) {
+        setPkkMembers(parsed.pkkMembers);
+        batchSaveCollection('pkk_members', parsed.pkkMembers);
+      }
+      if (parsed.karangTarunaMembers && Array.isArray(parsed.karangTarunaMembers)) {
+        setKarangTarunaMembers(parsed.karangTarunaMembers);
+        batchSaveCollection('karang_taruna_members', parsed.karangTarunaMembers);
+      }
+      if (parsed.citizenPhotos && Array.isArray(parsed.citizenPhotos)) {
+        setCitizenPhotos(parsed.citizenPhotos);
+        batchSaveCollection('citizen_photos', parsed.citizenPhotos);
+      }
+      if (parsed.umkmList && Array.isArray(parsed.umkmList)) {
+        setUmkmList(parsed.umkmList);
+        batchSaveCollection('umkm', parsed.umkmList);
+      }
+      if (parsed.hamletDemographics && Array.isArray(parsed.hamletDemographics)) {
+        setHamletDemographics(parsed.hamletDemographics);
+        batchSaveCollection('hamlet_demographics', parsed.hamletDemographics);
+      }
+      if (parsed.villageDemographicSummary) {
+        setVillageDemographicSummary(parsed.villageDemographicSummary);
+        saveDocToFirestore('village_settings', 'main', { id: 'main', villageDemographicSummary: parsed.villageDemographicSummary });
+      }
+      if (parsed.demographicEvents && Array.isArray(parsed.demographicEvents)) {
+        setDemographicEvents(parsed.demographicEvents);
+        batchSaveCollection('demographic_events', parsed.demographicEvents);
+      }
       return true;
     } catch (e) {
       console.error('Import error:', e);
@@ -1837,6 +1762,7 @@ export const VillageDataProvider: React.FC<{ children: ReactNode }> = ({ childre
         lastCloudSync,
         cloudSyncMessage,
         refreshCloudData,
+        seedAllToFirestore,
         villageHead,
         officials,
         updateOfficial,

@@ -59,7 +59,7 @@ import {
   MessageSquare,
   Compass
 } from 'lucide-react';
-import { SupabaseSettingsTab } from './admin/SupabaseSettingsTab';
+import { FirebaseSettingsTab } from './admin/FirebaseSettingsTab';
 import { ComplaintsTab } from './admin/ComplaintsTab';
 import { DocumentTemplatesTab } from './admin/DocumentTemplatesTab';
 import { DocumentSubmissionsTab } from './admin/DocumentSubmissionsTab';
@@ -845,7 +845,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
               { id: 'activities', label: `Kegiatan`, icon: Activity, category: 'data', count: activities.length },
               { id: 'citizen_photos', label: `Foto Warga`, icon: Camera, category: 'data', count: citizenPhotos.length },
               { id: 'media', label: `Pustaka Media`, icon: ImageIcon, category: 'data', count: mediaList.length },
-              { id: 'supabase', label: 'Database Supabase', icon: Cloud, category: 'system' },
+              { id: 'supabase', label: 'Cloud Firestore', icon: Cloud, category: 'system' },
               { id: 'keamanan', label: 'Keamanan & 2FA', icon: ShieldCheck, category: 'system' },
               { id: 'backup', label: 'Cadangan & Audit', icon: Database, category: 'system' },
             ]
@@ -2361,10 +2361,10 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
       )}
 
       {/* ==================================================== */}
-      {/* TAB: KONEKSI SUPABASE & CLOUD DB */}
+      {/* TAB: KONEKSI GOOGLE CLOUD FIRESTORE DB */}
       {/* ==================================================== */}
       {activeTab === 'supabase' && (
-        <SupabaseSettingsTab onShowToast={showToast} />
+        <FirebaseSettingsTab onShowToast={showToast} />
       )}
 
       {/* ==================================================== */}
