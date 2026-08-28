@@ -965,7 +965,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
                       type="text"
                       value={headForm.name}
                       onChange={(e) => setHeadForm({ ...headForm, name: e.target.value })}
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden bg-white text-slate-900 placeholder:text-slate-400"
                     />
                   </div>
                   <div>
@@ -974,7 +974,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
                       type="text"
                       value={headForm.role}
                       onChange={(e) => setHeadForm({ ...headForm, role: e.target.value })}
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden bg-white text-slate-900 placeholder:text-slate-400"
                     />
                   </div>
                   <div>
@@ -983,7 +983,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
                       type="text"
                       value={headForm.period || ''}
                       onChange={(e) => setHeadForm({ ...headForm, period: e.target.value })}
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden bg-white text-slate-900 placeholder:text-slate-400"
                     />
                   </div>
                   <div className="sm:col-span-2">
@@ -1001,7 +1001,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
                       rows={2}
                       value={headForm.description || ''}
                       onChange={(e) => setHeadForm({ ...headForm, description: e.target.value })}
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden bg-white text-slate-900 placeholder:text-slate-400"
                     />
                   </div>
                 </div>
@@ -1067,7 +1067,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
                       placeholder="Nama pamong..."
                       value={newOfficial.name}
                       onChange={(e) => setNewOfficial({ ...newOfficial, name: e.target.value })}
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden bg-white"
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden bg-white text-slate-900 placeholder:text-slate-400"
                     />
                   </div>
                   <div>
@@ -1078,7 +1078,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
                       placeholder="Contoh: Kepala Urusan Keuangan"
                       value={newOfficial.role}
                       onChange={(e) => setNewOfficial({ ...newOfficial, role: e.target.value })}
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden bg-white"
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden bg-white text-slate-900 placeholder:text-slate-400"
                     />
                   </div>
                   <div>
@@ -1088,7 +1088,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
                       placeholder="2019 - Sekarang"
                       value={newOfficial.period}
                       onChange={(e) => setNewOfficial({ ...newOfficial, period: e.target.value })}
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden bg-white"
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden bg-white text-slate-900 placeholder:text-slate-400"
                     />
                   </div>
                   <div className="sm:col-span-2">
@@ -1203,7 +1203,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
                               type="text"
                               value={officialForm.name ?? official.name}
                               onChange={(e) => setOfficialForm({ ...officialForm, name: e.target.value })}
-                              className="w-full px-3 py-1.5 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 bg-white"
+                              className="w-full px-3 py-1.5 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 bg-white text-slate-900 placeholder:text-slate-400"
                             />
                           </div>
                           <div>
@@ -1212,7 +1212,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
                               type="text"
                               value={officialForm.role ?? official.role}
                               onChange={(e) => setOfficialForm({ ...officialForm, role: e.target.value })}
-                              className="w-full px-3 py-1.5 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 bg-white"
+                              className="w-full px-3 py-1.5 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 bg-white text-slate-900 placeholder:text-slate-400"
                             />
                           </div>
                           <div>
@@ -1221,7 +1221,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onOpenSo
                               type="text"
                               value={officialForm.period ?? official.period ?? ''}
                               onChange={(e) => setOfficialForm({ ...officialForm, period: e.target.value })}
-                              className="w-full px-3 py-1.5 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 bg-white"
+                              className="w-full px-3 py-1.5 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 bg-white text-slate-900 placeholder:text-slate-400"
                             />
                           </div>
                           <div className="sm:col-span-2">

@@ -1,5 +1,17 @@
 @import "tailwindcss";
 
+/* Base form controls legibility */
+input,
+textarea,
+select {
+  color: #0f172a !important; /* slate-900 */
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #94a3b8 !important; /* slate-400 */
+}
+
 /* Lite Mode Performance Accelerations for 3G / Low-End Mobile Hardware */
 .lite-mode-active * {
   backdrop-filter: none !important;
